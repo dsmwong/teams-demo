@@ -2,14 +2,40 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Current state
+## Commands
 
-This repository is currently an empty scaffold — there is no source code, `package.json`, README, build system, or tests yet. The only files present are `.nvmrc` and `.vscode/settings.json` (cosmetic editor theme only).
+```bash
+pnpm dev          # start dev server (ts-node)
+pnpm build        # compile TypeScript → dist/
+pnpm start        # run compiled server
+pnpm test         # run all tests (Jest)
+pnpm test:watch   # run tests in watch mode
+```
 
-## Tooling
+## Architecture
 
-- `.nvmrc` pins **Node.js 22**. Run `nvm use` before installing dependencies or running any scripts once the project is initialized, per the user's global preference for Node.js/pnpm/TypeScript/Next.js as defaults.
+Single Express + WebSocket server (TypeScript) deployed on Fly.io.
 
-## Note for future Claude Code instances
+- **Entry point:** `src/server.ts` — mounts all routes, handles WebSocket upgrade for `/cr`
+- **TwiML webhooks:** `src/routes/` — `inbound` (greeting + CR), `action` (Teams dial), `dial-action` (Flex fallback), `token` (Voice SDK), `login` (auth cookie)
+- **ConversationRelay:** `src/ws/conversation-relay.ts` — bridges Twilio CR WebSocket to OpenAI GPT-4o; detects `[TRANSFER]` token to trigger call transfer
+- **Auth:** cookie-based (`demo_auth`); `src/middleware/auth.ts` protects `/token`
+- **UI:** `public/index.html` — static single-page Voice SDK client (light theme)
+- **Agent persona:** `prompts/system-prompt.md` — read at runtime, edit without redeploying
 
-Once real code, a `package.json`, and a project structure exist, replace this file with actual build/lint/test commands and an architecture overview — do not leave this placeholder in place once there's something to document.
+## Environment variables
+
+All required vars listed in `.env.example`. Set via `fly secrets set` for production; copy `.env.example` → `.env` for local dev.
+
+## Deployment
+
+```bash
+fly secrets set KEY=VALUE ...
+fly deploy
+```
+
+Health check: `GET /health` → `{"status":"ok"}`
+
+## WhatsApp / Flex setup
+
+See `docs/whatsapp-flex-setup.md` for configuring the Flex/WhatsApp account to A2A-transfer calls into this demo.
