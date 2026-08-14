@@ -30,9 +30,22 @@ All required vars listed in `.env.example`. Set via `fly secrets set` for produc
 ## Deployment
 
 ```bash
-fly secrets set KEY=VALUE ...
-fly deploy
+# First time — creates app, uploads secrets from .env, deploys
+pnpm fly:setup
+
+# Or step by step:
+pnpm fly:init      # create the Fly.io app (once)
+pnpm fly:secrets   # push all .env values as secrets (re-run after .env changes)
+pnpm fly:deploy    # build and deploy
+
+# Day-to-day
+pnpm fly:deploy    # redeploy after code changes
+pnpm fly:logs      # stream logs
+pnpm fly:open      # open the deployed URL
+pnpm fly:status    # check machine/deployment status
 ```
+
+Requires the [Fly.io CLI](https://fly.io/docs/hands-on/install-flyctl/) and `fly auth login`.
 
 Health check: `GET /health` → `{"status":"ok"}`
 

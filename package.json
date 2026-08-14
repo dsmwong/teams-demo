@@ -7,7 +7,14 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest --forceExit",
-    "test:watch": "jest --watch --forceExit"
+    "test:watch": "jest --watch --forceExit",
+    "fly:init": "fly apps create teams-demo",
+    "fly:secrets": "bash scripts/fly-secrets.sh",
+    "fly:deploy": "fly deploy",
+    "fly:setup": "pnpm fly:init && pnpm fly:secrets && pnpm fly:deploy",
+    "fly:open": "fly open",
+    "fly:logs": "fly logs",
+    "fly:status": "fly status"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
