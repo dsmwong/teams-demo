@@ -30,7 +30,7 @@ describe('GET /token', () => {
   it('returns a token string when authenticated', async () => {
     const res = await request(makeApp())
       .get('/token')
-      .set('Cookie', 'demo_auth={PASSWORD}');
+      .set('Cookie', 'demo_auth=testpassword123');
     expect(res.status).toBe(200);
     expect(typeof res.body.token).toBe('string');
     expect(res.body.token.length).toBeGreaterThan(0);
