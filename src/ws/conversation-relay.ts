@@ -52,7 +52,7 @@ export function handleConversationRelay(ws: WebSocket): void {
       const clean = fullResponse.replace('[TRANSFER]', '').trim();
       history.push({ role: 'assistant', content: clean });
 
-      const words = clean.split(/(\s+)/);
+      const words = clean.split(/\s+/).filter(Boolean);
       for (let i = 0; i < words.length; i++) {
         ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
       }
