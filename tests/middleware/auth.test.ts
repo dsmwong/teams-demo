@@ -11,7 +11,7 @@ describe('requireAuth', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('calls next() when demo_auth cookie matches DEMO_PASSWORD', () => {
-    const req = { cookies: { demo_auth: '{PASSWORD}' } } as unknown as Request;
+    const req = { cookies: { demo_auth: 'testpassword123' } } as unknown as Request;
     requireAuth(req, res, next);
     expect(next).toHaveBeenCalledTimes(1);
     expect(res.status).not.toHaveBeenCalled();

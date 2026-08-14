@@ -9,5 +9,5 @@ process.env.FLEX_ACCOUNT_SID     = 'ACflex000000000000000000000000000';
 process.env.FLEX_APPLICATION_SID = 'APflex0000000000000000000000000000';
 process.env.OPENAI_API_KEY       = 'sk-test-key-000000000000000000000000';
 process.env.GREETING_MESSAGE     = 'Welcome to test';
-process.env.DEMO_PASSWORD        = '{PASSWORD}';
+process.env.DEMO_PASSWORD        = 'testpassword123';
 process.env.HOST                 = 'test.example.com';

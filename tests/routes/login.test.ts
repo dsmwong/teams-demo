@@ -16,7 +16,7 @@ describe('POST /login', () => {
   it('sets demo_auth cookie and returns success on correct password', async () => {
     const res = await request(makeApp())
       .post('/login')
-      .send({ password: '{PASSWORD}' });
+      .send({ password: 'testpassword123' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     const cookies = res.headers['set-cookie'] as unknown as string[];
