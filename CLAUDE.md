@@ -21,7 +21,7 @@ Single Express + WebSocket server (TypeScript) deployed on Fly.io.
 - **ConversationRelay:** `src/ws/conversation-relay.ts` — bridges Twilio CR WebSocket to OpenAI GPT-4o; detects `[TRANSFER]` token to trigger call transfer
 - **Auth:** cookie-based (`demo_auth`); `src/middleware/auth.ts` protects `/token`
 - **UI:** `public/index.html` — static single-page Voice SDK client (light theme)
-- **Agent persona:** `prompts/system-prompt.md` — read at runtime, edit without redeploying
+- **Agent persona:** `prompts/system-prompt.md` — edit freely in local dev; in production the file is baked into the container image so a `fly deploy` is needed after changes
 
 ## Environment variables
 

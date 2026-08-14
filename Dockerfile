@@ -18,5 +18,7 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=build /app/dist    ./dist
 COPY --from=build /app/public  ./public
 COPY --from=build /app/prompts ./prompts
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
 EXPOSE 3000
 CMD ["node", "dist/server.js"]
