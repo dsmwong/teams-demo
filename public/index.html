@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teams Demo</title>
+  <script src="https://sdk.twilio.com/js/client/releases/2.6.0/twilio.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 32px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      width: 320px;
+      text-align: center;
+    }
+    h1 { font-size: 22px; font-weight: 700; color: #1a202c; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #718096; margin-bottom: 28px; }
+    input[type=password] {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid #e2e8f0; border-radius: 8px;
+      font-size: 14px; margin-bottom: 12px; outline: none;
+    }
+    input[type=password]:focus { border-color: #4299e1; }
+    .btn {
+      width: 100%; padding: 11px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn-primary { background: #3182ce; color: #fff; }
+    .error { color: #e53e3e; font-size: 12px; margin-top: 8px; min-height: 18px; }
+    .sdk-row { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; margin-bottom: 24px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #a0aec0; }
+    .dot.ready { background: #38a169; }
+    .dot.error  { background: #e53e3e; }
+    .status-badge {
+      display: inline-block; padding: 5px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; margin-bottom: 24px;
+      background: #f7fafc; color: #4a5568;
+    }
+    .status-badge.active    { background: #fefcbf; color: #b7791f; }
+    .status-badge.connected { background: #c6f6d5; color: #276749; }
+    .dial-btn {
+      width: 80px; height: 80px; border-radius: 50%; border: none;
+      font-size: 32px; cursor: pointer;
+      margin: 0 auto 12px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15); transition: transform .1s;
+    }
+    .dial-btn:active { transform: scale(0.95); }
+    .dial-btn.idle   { background: #38a169; }
+    .dial-btn.active { background: #e53e3e; }
+    .dial-hint { font-size: 12px; color: #718096; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="login-card" class="card" hidden>
+  <h1>Teams Demo</h1>
+  <p class="subtitle">Customer Experience Demo</p>
+  <input type="password" id="pw" placeholder="Password" />
+  <button class="btn btn-primary" onclick="doLogin()">Enter Demo</button>
+  <div class="error" id="login-error"></div>
+</div>
+
+<div id="dial-card" class="card" hidden>
+  <h1>Teams Demo</h1>
+  <p class="subtitle">Voice SDK Client</p>
+  <div class="sdk-row">
+    <div class="dot" id="sdk-dot"></div>
+    <span id="sdk-label">Initialising…</span>
+  </div>
+  <br>
+  <span class="status-badge" id="status">Idle</span>
+  <br>
+  <button class="dial-btn idle" id="dial-btn" onclick="toggleCall()">📞</button>
+  <div class="dial-hint" id="hint">Tap to call</div>
+</div>
+
+<script>
+  let device = null, call = null;
+
+  async function init() {
+    try {
+      const r = await fetch('/token');
+      if (r.status === 401) { show('login-card'); return; }
+      setupDevice((await r.json()).token);
+      show('dial-card');
+    } catch { show('login-card'); }
+  }
+
+  async function doLogin() {
+    const r = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: document.getElementById('pw').value }),
+    });
+    if (r.ok) {
+      document.getElementById('login-card').hidden = true;
+      setupDevice((await (await fetch('/token')).json()).token);
+      show('dial-card');
+    } else {
+      document.getElementById('login-error').textContent = 'Incorrect password';
+    }
+  }
+
+  function setupDevice(token) {
+    device = new Twilio.Device(token, { logLevel: 1 });
+    device.on('ready',      () => setSdk('ready', 'SDK Ready'));
+    device.on('registered', () => setSdk('ready', 'SDK Ready'));
+    device.on('error',      (e) => { setSdk('error', 'SDK Error'); setStatus('Error: ' + e.message, ''); });
+    device.on('connect',    (c) => { call = c; setStatus('In call with Teams', 'connected'); setBtn('active', '📵', 'Tap to hang up'); });
+    device.on('disconnect', ()  => { call = null; setStatus('Call ended', ''); setBtn('idle', '📞', 'Tap to call'); setTimeout(() => setStatus('Idle', ''), 3000); });
+    device.register();
+  }
+
+  function toggleCall() {
+    if (call) { call.disconnect(); return; }
+    setStatus('Connecting…', 'active');
+    setBtn('active', '⏳', 'Connecting…');
+    device.connect();
+  }
+
+  function show(id) { document.getElementById(id).hidden = false; }
+  function setSdk(state, label) {
+    document.getElementById('sdk-dot').className = 'dot ' + state;
+    document.getElementById('sdk-label').textContent = label;
+  }
+  function setStatus(text, type) {
+    const b = document.getElementById('status');
+    b.textContent = text; b.className = 'status-badge ' + type;
+  }
+  function setBtn(state, icon, hint) {
+    const b = document.getElementById('dial-btn');
+    b.className = 'dial-btn ' + state; b.textContent = icon;
+    document.getElementById('hint').textContent = hint;
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    init();
+  });
+</script>
+</body>
+</html>
