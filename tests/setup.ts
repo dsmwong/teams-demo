@@ -1,0 +1,13 @@
+process.env.TWILIO_ACCOUNT_SID   = 'ACtest000000000000000000000000000';
+process.env.TWILIO_AUTH_TOKEN    = 'test_auth_token_000000000000000000';
+process.env.TWILIO_API_KEY       = 'SKtest0000000000000000000000000000';
+process.env.TWILIO_API_SECRET    = 'test_api_secret_000000000000000000';
+process.env.TWILIO_PHONE_NUMBER  = '+15551234567';
+process.env.TWILIO_TWIML_APP_SID = 'APtest0000000000000000000000000000';
+process.env.TEAMS_NUMBER         = '+61400000001';
+process.env.FLEX_ACCOUNT_SID     = 'ACflex000000000000000000000000000';
+process.env.FLEX_APPLICATION_SID = 'APflex0000000000000000000000000000';
+process.env.OPENAI_API_KEY       = 'sk-test-key-000000000000000000000000';
+process.env.GREETING_MESSAGE     = 'Welcome to test';
+process.env.DEMO_PASSWORD        = '{PASSWORD}';
+process.env.HOST                 = 'test.example.com';
