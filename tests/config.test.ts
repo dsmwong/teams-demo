@@ -1,3 +1,6 @@
+// Prevent dotenv from loading .env file during tests (vars are set by tests/setup.ts)
+jest.mock('dotenv', () => ({ config: jest.fn() }));
+
 const REQUIRED_VARS = [
   'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_API_KEY',
   'TWILIO_API_SECRET', 'TWILIO_PHONE_NUMBER', 'TWILIO_TWIML_APP_SID',

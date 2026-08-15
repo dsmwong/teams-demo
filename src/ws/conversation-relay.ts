@@ -3,6 +3,7 @@ import { OpenAI } from 'openai';
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from '../config';
+import { emit } from '../events';
 
 function loadSystemPrompt(): string {
   return fs.readFileSync(
@@ -18,6 +19,7 @@ interface ChatMessage {
 
 export function handleConversationRelay(ws: WebSocket): void {
   console.log('[CR] WebSocket connected');
+  emit('cr', '🔌 ConversationRelay connected');
   // Client created inside function so each session gets a fresh instance (required for testability)
   const openai = new OpenAI({ apiKey: config.openai.apiKey });
   const history: ChatMessage[] = [];
@@ -27,7 +29,7 @@ export function handleConversationRelay(ws: WebSocket): void {
   });
 
   ws.on('message', async (data: Buffer) => {
-    let msg: { type: string; voicePrompt?: string };
+    let msg: { type: string; voicePrompt?: string; callSid?: string };
     try {
       msg = JSON.parse(data.toString());
     } catch {
@@ -36,8 +38,14 @@ export function handleConversationRelay(ws: WebSocket): void {
 
     console.log(`[CR] message type=${msg.type}${msg.type === 'prompt' ? ` voice="${msg.voicePrompt}"` : ''}`);
 
+    if (msg.type === 'setup') {
+      emit('cr', `📋 Setup — CallSid: ${msg.callSid ?? 'unknown'}`);
+      return;
+    }
+
     if (msg.type !== 'prompt' || !msg.voicePrompt) return;
 
+    emit('cr', `🎤 Caller: "${msg.voicePrompt}"`);
     history.push({ role: 'user', content: msg.voicePrompt });
 
     try {
@@ -59,6 +67,9 @@ export function handleConversationRelay(ws: WebSocket): void {
       const clean = fullResponse.replace('[TRANSFER]', '').trim();
       history.push({ role: 'assistant', content: clean });
 
+      emit('ai', `🤖 Agent: "${clean.length > 120 ? clean.slice(0, 120) + '…' : clean}"`);
+      if (shouldTransfer) emit('transfer', '🔀 Agent triggering transfer to Teams');
+
       const words = clean.split(/\s+/).filter(Boolean);
       for (let i = 0; i < words.length; i++) {
         ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
@@ -69,6 +80,7 @@ export function handleConversationRelay(ws: WebSocket): void {
       }
     } catch (err) {
       console.error('ConversationRelay OpenAI error:', err);
+      emit('error', `❌ OpenAI error: ${(err as Error).message}`);
       ws.send(JSON.stringify({ type: 'end', handoffData: '{}' }));
     }
   });

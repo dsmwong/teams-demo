@@ -10,6 +10,7 @@ import inboundRouter   from './routes/inbound';
 import actionRouter    from './routes/action';
 import dialActionRouter from './routes/dial-action';
 import tokenRouter     from './routes/token';
+import logStreamRouter from './routes/log-stream';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/inbound',     inboundRouter);
 app.use('/action',      actionRouter);
 app.use('/dial-action', dialActionRouter);
 app.use('/token',       tokenRouter);
+app.use('/log-stream',  logStreamRouter);
 
 const server = http.createServer(app);
 
