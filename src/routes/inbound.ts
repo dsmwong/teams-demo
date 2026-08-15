@@ -16,12 +16,14 @@ router.post('/', (req, res) => {
     cr.language              ? `language="${cr.language}"`                            : '',
     cr.transcriptionProvider ? `transcriptionProvider="${cr.transcriptionProvider}"` : '',
     cr.speechModel           ? `speechModel="${cr.speechModel}"`                     : '',
-  ].filter(Boolean).join(' ');
+  ].filter(Boolean).join('\n      ');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Connect action="https://${config.host}/action" method="POST">
-    <ConversationRelay ${crAttrs}/>
+  <Connect action="https://${config.host}/action"
+           method="POST">
+    <ConversationRelay
+      ${crAttrs}/>
   </Connect>
 </Response>`;
   emit('call', '📞 Inbound call — playing greeting');
