@@ -32,6 +32,7 @@ const wss = new WebSocket.Server({ noServer: true });
 wss.on('connection', (ws) => handleConversationRelay(ws));
 
 server.on('upgrade', (req, socket, head) => {
+  console.log(`[upgrade] url=${req.url} origin=${req.headers.origin ?? 'none'}`);
   if (req.url === '/cr') {
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
   } else {

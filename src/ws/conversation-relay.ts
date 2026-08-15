@@ -17,9 +17,14 @@ interface ChatMessage {
 }
 
 export function handleConversationRelay(ws: WebSocket): void {
+  console.log('[CR] WebSocket connected');
   // Client created inside function so each session gets a fresh instance (required for testability)
   const openai = new OpenAI({ apiKey: config.openai.apiKey });
   const history: ChatMessage[] = [];
+
+  ws.on('close', (code, reason) => {
+    console.log(`[CR] WebSocket closed code=${code} reason=${reason.toString()}`);
+  });
 
   ws.on('message', async (data: Buffer) => {
     let msg: { type: string; voicePrompt?: string };
@@ -28,6 +33,8 @@ export function handleConversationRelay(ws: WebSocket): void {
     } catch {
       return;
     }
+
+    console.log(`[CR] message type=${msg.type}${msg.type === 'prompt' ? ` voice="${msg.voicePrompt}"` : ''}`);
 
     if (msg.type !== 'prompt' || !msg.voicePrompt) return;
 
