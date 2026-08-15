@@ -8,7 +8,7 @@ router.post('/', (req, res) => {
 <Response>
   <Say>${config.greetingMessage}</Say>
   <Connect>
-    <ConversationRelay url="wss://${config.host}/cr"/>
+    <ConversationRelay url="wss://${config.host}/cr" action="https://${config.host}/action"/>
   </Connect>
 </Response>`;
   res.type('text/xml').send(xml);

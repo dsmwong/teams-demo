@@ -22,9 +22,10 @@ describe('POST /inbound', () => {
     expect(res.text).toContain('<Say>Welcome to test</Say>');
   });
 
-  it('contains <ConversationRelay> pointing to wss host', async () => {
+  it('contains <ConversationRelay> with wss url and action URL', async () => {
     const res = await request(makeApp()).post('/inbound').send({});
     expect(res.text).toContain('<ConversationRelay');
     expect(res.text).toContain('wss://test.example.com/cr');
+    expect(res.text).toContain('action="https://test.example.com/action"');
   });
 });
