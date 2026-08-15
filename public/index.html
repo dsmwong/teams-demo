@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teams Demo</title>
-  <script src="https://sdk.twilio.com/js/client/releases/2.6.0/twilio.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -115,19 +115,25 @@
 
   function setupDevice(token) {
     device = new Twilio.Device(token, { logLevel: 1 });
-    device.on('ready',      () => setSdk('ready', 'SDK Ready'));
     device.on('registered', () => setSdk('ready', 'SDK Ready'));
     device.on('error',      (e) => { setSdk('error', 'SDK Error'); setStatus('Error: ' + e.message, ''); });
-    device.on('connect',    (c) => { call = c; setStatus('In call with Teams', 'connected'); setBtn('active', '📵', 'Tap to hang up'); });
-    device.on('disconnect', ()  => { call = null; setStatus('Call ended', ''); setBtn('idle', '📞', 'Tap to call'); setTimeout(() => setStatus('Idle', ''), 3000); });
     device.register();
   }
 
-  function toggleCall() {
+  async function toggleCall() {
     if (call) { call.disconnect(); return; }
     setStatus('Connecting…', 'active');
     setBtn('active', '⏳', 'Connecting…');
-    device.connect();
+    try {
+      call = await device.connect();
+      call.on('accept',     () => { setStatus('In call with Teams', 'connected'); setBtn('active', '📵', 'Tap to hang up'); });
+      call.on('disconnect', () => { call = null; setStatus('Call ended', ''); setBtn('idle', '📞', 'Tap to call'); setTimeout(() => setStatus('Idle', ''), 3000); });
+      call.on('error',      (e) => { call = null; setStatus('Error: ' + e.message, ''); setBtn('idle', '📞', 'Tap to call'); });
+    } catch (e) {
+      call = null;
+      setStatus('Failed to connect', '');
+      setBtn('idle', '📞', 'Tap to call');
+    }
   }
 
   function show(id) { document.getElementById(id).hidden = false; }
