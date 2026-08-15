@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teams Demo</title>
   <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -46,10 +47,11 @@
     .error { color: #e53e3e; font-size: 12px; margin-top: 6px; min-height: 16px; }
 
     /* ── dial ── */
-    .sdk-row { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; margin-bottom: 20px; }
-    .dot { width: 9px; height: 9px; border-radius: 50%; background: #a0aec0; }
-    .dot.ready { background: #38a169; }
-    .dot.error  { background: #e53e3e; }
+    .sdk-row {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; margin-bottom: 20px;
+    }
+    .sdk-row i { font-size: 15px; }
     .status-badge {
       display: inline-block; padding: 4px 14px; border-radius: 20px;
       font-size: 12px; font-weight: 600; margin-bottom: 20px;
@@ -59,14 +61,18 @@
     .status-badge.connected { background: #c6f6d5; color: #276749; }
     .dial-btn {
       width: 76px; height: 76px; border-radius: 50%; border: none;
-      font-size: 30px; cursor: pointer;
-      margin: 0 auto 10px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; margin: 0 auto 10px;
+      display: flex; align-items: center; justify-content: center;
       box-shadow: 0 4px 14px rgba(0,0,0,0.15); transition: transform .1s;
     }
     .dial-btn:active { transform: scale(0.95); }
     .dial-btn.idle   { background: #38a169; }
     .dial-btn.active { background: #e53e3e; }
+    .dial-btn i { font-size: 30px; color: #fff; }
     .dial-hint { font-size: 12px; color: #718096; }
+
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .icon-spin { animation: spin 0.8s linear infinite; }
 
     /* ── log panel ── */
     #log-panel {
@@ -80,27 +86,26 @@
       height: 460px;
     }
     #log-panel h2 {
-      font-size: 14px;
-      font-weight: 700;
-      color: #1a202c;
-      margin-bottom: 10px;
-      flex-shrink: 0;
+      font-size: 14px; font-weight: 700; color: #1a202c;
+      margin-bottom: 10px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 7px;
     }
+    #log-panel h2 i { font-size: 16px; color: #4a5568; }
     #log-entries {
-      flex: 1;
-      overflow-y: auto;
+      flex: 1; overflow-y: auto;
       font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
       font-size: 11px;
     }
     .log-entry { padding: 5px 0; border-bottom: 1px solid #f5f5f5; }
     .log-entry:last-child { border-bottom: none; }
-    .log-meta { display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
+    .log-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
     .log-time { color: #b0b8c1; font-size: 10px; flex-shrink: 0; }
     .log-badge {
-      display: inline-block; padding: 1px 6px; border-radius: 3px;
-      color: #fff; font-size: 9px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .03em; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 5px;
+      flex-shrink: 0;
     }
+    .log-badge i { font-size: 12px; color: #fff; }
     .badge-call     { background: #3182ce; }
     .badge-cr       { background: #805ad5; }
     .badge-ai       { background: #38a169; }
@@ -144,19 +149,21 @@
     <h1>Teams Demo</h1>
     <p class="subtitle">Voice SDK Client</p>
     <div class="sdk-row">
-      <div class="dot" id="sdk-dot"></div>
+      <i class="ph ph-circle-dashed" id="sdk-icon" style="color:#a0aec0"></i>
       <span id="sdk-label">Initialising…</span>
     </div>
     <br>
     <span class="status-badge" id="status">Idle</span>
     <br>
-    <button class="dial-btn idle" id="dial-btn" onclick="toggleCall()">📞</button>
+    <button class="dial-btn idle" id="dial-btn" onclick="toggleCall()">
+      <i class="ph ph-phone"></i>
+    </button>
     <div class="dial-hint" id="hint">Tap to call</div>
   </div>
 
   <!-- Live Log -->
   <div id="log-panel" hidden>
-    <h2>📡 Live Activity</h2>
+    <h2><i class="ph ph-activity"></i>Live Activity</h2>
     <div id="log-entries">
       <div class="log-empty" id="log-empty">Waiting for a call…</div>
     </div>
@@ -209,22 +216,36 @@
   async function toggleCall() {
     if (call) { call.disconnect(); return; }
     setStatus('Connecting…', 'active');
-    setBtn('active', '⏳', 'Connecting…');
+    setBtn('active', 'ph ph-circle-notch icon-spin', 'Connecting…');
     try {
       call = await device.connect();
-      call.on('accept',     () => { setStatus('In call', 'connected'); setBtn('active', '📵', 'Hang up'); });
-      call.on('disconnect', () => { call = null; setStatus('Call ended', ''); setBtn('idle', '📞', 'Tap to call'); setTimeout(() => setStatus('Idle', ''), 3000); });
-      call.on('error',      (e) => { call = null; setStatus('Error: ' + e.message, ''); setBtn('idle', '📞', 'Tap to call'); });
+      call.on('accept',     () => { setStatus('In call', 'connected'); setBtn('active', 'ph ph-phone-x', 'Hang up'); });
+      call.on('disconnect', () => { call = null; setStatus('Call ended', ''); setBtn('idle', 'ph ph-phone', 'Tap to call'); setTimeout(() => setStatus('Idle', ''), 3000); });
+      call.on('error',      (e) => { call = null; setStatus('Error: ' + e.message, ''); setBtn('idle', 'ph ph-phone', 'Tap to call'); });
     } catch (e) {
-      call = null; setStatus('Failed', ''); setBtn('idle', '📞', 'Tap to call');
+      call = null; setStatus('Failed', ''); setBtn('idle', 'ph ph-phone', 'Tap to call');
     }
   }
 
   // ── Live Log ──────────────────────────────────────────────────────────────
-  const BADGE_COLORS = {
-    call: 'badge-call', cr: 'badge-cr', ai: 'badge-ai',
-    transfer: 'badge-transfer', twiml: 'badge-twiml',
-    error: 'badge-error', clear: 'badge-clear',
+  const TYPE_ICONS = {
+    call:     'ph-phone-incoming',
+    cr:       'ph-broadcast',
+    ai:       'ph-robot',
+    transfer: 'ph-arrow-circle-right',
+    twiml:    'ph-code',
+    error:    'ph-warning',
+    clear:    'ph-arrows-clockwise',
+  };
+
+  const BADGE_CLASS = {
+    call:     'badge-call',
+    cr:       'badge-cr',
+    ai:       'badge-ai',
+    transfer: 'badge-transfer',
+    twiml:    'badge-twiml',
+    error:    'badge-error',
+    clear:    'badge-clear',
   };
 
   function connectLogStream() {
@@ -238,23 +259,24 @@
   }
 
   function clearLog() {
-    const el = document.getElementById('log-entries');
-    el.innerHTML = '<div class="log-empty" id="log-empty">New call started…</div>';
+    document.getElementById('log-entries').innerHTML =
+      '<div class="log-empty" id="log-empty">New call started…</div>';
   }
 
   function addLogEntry({ ts, type, label, detail }) {
     const empty = document.getElementById('log-empty');
     if (empty) empty.remove();
 
-    const time = new Date(ts).toLocaleTimeString('en-AU', { hour12: false });
-    const badgeClass = BADGE_COLORS[type] || 'badge-twiml';
+    const time      = new Date(ts).toLocaleTimeString('en-AU', { hour12: false });
+    const badgeClass = BADGE_CLASS[type] || 'badge-twiml';
+    const iconClass  = TYPE_ICONS[type]  || 'ph-dot';
 
     const entry = document.createElement('div');
     entry.className = 'log-entry';
     entry.innerHTML =
       `<div class="log-meta">` +
         `<span class="log-time">${time}</span>` +
-        `<span class="log-badge ${badgeClass}">${type}</span>` +
+        `<span class="log-badge ${badgeClass}"><i class="ph ${iconClass}"></i></span>` +
         `<span class="log-label">${escHtml(label)}</span>` +
       `</div>` +
       (detail ? `<pre class="log-detail">${escHtml(detail.trim())}</pre>` : '');
@@ -270,17 +292,31 @@
 
   // ── helpers ───────────────────────────────────────────────────────────────
   function show(id) { document.getElementById(id).hidden = false; }
+
   function setSdk(state, label) {
-    document.getElementById('sdk-dot').className = 'dot ' + state;
+    const icon = document.getElementById('sdk-icon');
+    if (state === 'ready') {
+      icon.className = 'ph ph-check-circle';
+      icon.style.color = '#38a169';
+    } else if (state === 'error') {
+      icon.className = 'ph ph-x-circle';
+      icon.style.color = '#e53e3e';
+    } else {
+      icon.className = 'ph ph-circle-dashed';
+      icon.style.color = '#a0aec0';
+    }
     document.getElementById('sdk-label').textContent = label;
   }
+
   function setStatus(text, type) {
     const b = document.getElementById('status');
     b.textContent = text; b.className = 'status-badge ' + type;
   }
-  function setBtn(state, icon, hint) {
+
+  function setBtn(state, iconClass, hint) {
     const b = document.getElementById('dial-btn');
-    b.className = 'dial-btn ' + state; b.textContent = icon;
+    b.className = 'dial-btn ' + state;
+    b.innerHTML = `<i class="ph ${iconClass}"></i>`;
     document.getElementById('hint').textContent = hint;
   }
 

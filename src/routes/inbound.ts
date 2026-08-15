@@ -26,7 +26,7 @@ router.post('/', (req, res) => {
       ${crAttrs}/>
   </Connect>
 </Response>`;
-  emit('call', '📞 Inbound call — playing greeting');
+  emit('call', 'Inbound call — playing greeting');
   emit('twiml', '/inbound', xml);
   res.type('text/xml').send(xml);
 });
