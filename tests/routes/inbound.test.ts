@@ -22,10 +22,10 @@ describe('POST /inbound', () => {
     expect(res.text).toContain('<Say>Welcome to test</Say>');
   });
 
-  it('contains <ConversationRelay> with wss url and action URL', async () => {
+  it('contains <Connect> with action URL and <ConversationRelay> with wss url', async () => {
     const res = await request(makeApp()).post('/inbound').send({});
+    expect(res.text).toContain('<Connect action="https://test.example.com/action"');
     expect(res.text).toContain('<ConversationRelay');
     expect(res.text).toContain('wss://test.example.com/cr');
-    expect(res.text).toContain('action="https://test.example.com/action"');
   });
 });
