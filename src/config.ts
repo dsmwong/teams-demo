@@ -33,4 +33,11 @@ export const config = {
   demoPassword:    process.env.DEMO_PASSWORD!,
   host:            process.env.HOST!,
   port:            parseInt(process.env.PORT ?? '3000', 10),
+  cr: {
+    ttsProvider:           process.env.CR_TTS_PROVIDER,
+    voice:                 process.env.CR_VOICE,
+    language:              process.env.CR_LANGUAGE,
+    transcriptionProvider: process.env.CR_TRANSCRIPTION_PROVIDER,
+    speechModel:           process.env.CR_SPEECH_MODEL,
+  },
 };

@@ -6,11 +6,22 @@ const router = Router();
 
 router.post('/', (req, res) => {
   emit('clear', 'New call');
+
+  const { cr } = config;
+  const crAttrs = [
+    `url="wss://${config.host}/cr"`,
+    cr.ttsProvider           ? `ttsProvider="${cr.ttsProvider}"`                     : '',
+    cr.voice                 ? `voice="${cr.voice}"`                                  : '',
+    cr.language              ? `language="${cr.language}"`                            : '',
+    cr.transcriptionProvider ? `transcriptionProvider="${cr.transcriptionProvider}"` : '',
+    cr.speechModel           ? `speechModel="${cr.speechModel}"`                     : '',
+  ].filter(Boolean).join(' ');
+
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say>${config.greetingMessage}</Say>
   <Connect action="https://${config.host}/action" method="POST">
-    <ConversationRelay url="wss://${config.host}/cr"/>
+    <ConversationRelay ${crAttrs}/>
   </Connect>
 </Response>`;
   emit('call', '📞 Inbound call — playing greeting');
