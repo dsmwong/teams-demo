@@ -17,9 +17,10 @@ describe('POST /inbound', () => {
     expect(res.type).toMatch(/xml/);
   });
 
-  it('contains <Say> with the configured greeting', async () => {
+  it('contains welcomeGreeting on <ConversationRelay> (no separate <Say>)', async () => {
     const res = await request(makeApp()).post('/inbound').send({});
-    expect(res.text).toContain('<Say>Welcome to test</Say>');
+    expect(res.text).not.toContain('<Say>');
+    expect(res.text).toContain('welcomeGreeting="Welcome to test"');
   });
 
   it('contains <Connect> with action URL and <ConversationRelay> with wss url', async () => {
