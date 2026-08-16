@@ -27,6 +27,10 @@ export const config = {
     number:  process.env.TEAMS_NUMBER!,
     timeout: parseInt(process.env.TEAMS_DIAL_TIMEOUT ?? '10', 10),
   },
+  whatsapp: {
+    // TwiML App SID in this account that receives A2A transfers from the external WhatsApp account
+    a2aAppSid: process.env.WHATSAPP_A2A_APP_SID,
+  },
   flex: {
     accountSid:      process.env.FLEX_ACCOUNT_SID!,
     applicationSid:  process.env.FLEX_APPLICATION_SID!,
