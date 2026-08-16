@@ -142,6 +142,70 @@
       background-repeat: no-repeat; background-position: right 6px center;
     }
     #call-select:focus { border-color: #4299e1; }
+    .arch-btn {
+      flex-shrink: 0; background: none; border: 1.5px solid #e2e8f0;
+      border-radius: 6px; padding: 3px 7px; cursor: pointer; color: #718096;
+      display: flex; align-items: center; gap: 4px; font-size: 11px;
+      transition: all .15s;
+    }
+    .arch-btn:hover { border-color: #4299e1; color: #3182ce; }
+    .arch-btn i { font-size: 13px; }
+
+    /* ── architecture modal ── */
+    #arch-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; padding: 24px;
+    }
+    #arch-modal.hidden { display: none; }
+    .arch-card {
+      background: #fff; border-radius: 20px;
+      padding: 28px 32px 24px;
+      max-width: 860px; width: 100%;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+      position: relative;
+    }
+    .arch-card-title {
+      font-size: 18px; font-weight: 700; color: #1a202c;
+      margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+    }
+    .arch-card-title i { font-size: 20px; color: #4a5568; }
+    .arch-close {
+      position: absolute; top: 16px; right: 18px;
+      background: none; border: none; cursor: pointer;
+      color: #a0aec0; font-size: 20px;
+    }
+    .arch-close:hover { color: #4a5568; }
+
+    /* diagram layout */
+    .arch-diagram { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .arch-row { display: flex; gap: 10px; align-items: stretch; justify-content: center; }
+    .arch-arrow { text-align: center; color: #a0aec0; font-size: 20px; line-height: 1; padding: 2px 0; }
+    .arch-split { display: flex; gap: 24px; justify-content: center; align-items: flex-start; width: 100%; }
+    .arch-branch { display: flex; flex-direction: column; align-items: center; gap: 0; flex: 1; }
+
+    /* nodes */
+    .abox {
+      border-radius: 10px; padding: 10px 14px; font-size: 12px;
+      font-weight: 600; text-align: center; line-height: 1.4;
+      border: 2px solid transparent;
+    }
+    .abox-sub { font-size: 10px; font-weight: 400; margin-top: 3px; opacity: .75; }
+    .abox-wide { min-width: 480px; }
+    .abox-med  { min-width: 220px; }
+    .abox-sm   { min-width: 140px; }
+    .abox-caller { background: #ebf8ff; border-color: #90cdf4; color: #2b6cb0; }
+    .abox-twilio { background: #e9d8fd; border-color: #b794f4; color: #553c9a; }
+    .abox-server { background: #faf5ff; border-color: #d6bcfa; color: #553c9a; }
+    .abox-cr     { background: #f0fff4; border-color: #9ae6b4; color: #276749; }
+    .abox-ai     { background: #e6fffa; border-color: #81e6d9; color: #234e52; }
+    .abox-action { background: #fff5f5; border-color: #feb2b2; color: #742a2a; }
+    .abox-teams  { background: #ebf4ff; border-color: #63b3ed; color: #1a365d; }
+    .abox-flex   { background: #fffaf0; border-color: #fbd38d; color: #7b341e; }
+    .abox-ok     { background: #f0fff4; border-color: #68d391; color: #22543d; }
+    .arch-label  { font-size: 10px; color: #a0aec0; padding: 1px 0; }
     #log-entries {
       flex: 1; overflow-y: auto;
       font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
@@ -273,6 +337,9 @@
   <div id="log-panel" hidden>
     <div id="log-header">
       <h2><i class="ph ph-activity"></i>Live Activity</h2>
+      <button class="arch-btn" onclick="openArch()" title="Architecture diagram">
+        <i class="ph ph-graph"></i>Architecture
+      </button>
       <select id="call-select" onchange="setFilter(this.value || null)">
         <option value="">All calls</option>
       </select>
@@ -282,6 +349,114 @@
     </div>
   </div>
 
+</div>
+
+<!-- Architecture Modal -->
+<div id="arch-modal" class="hidden" onclick="handleArchClick(event)">
+  <div class="arch-card">
+    <button class="arch-close" onclick="closeArch()"><i class="ph ph-x"></i></button>
+    <div class="arch-card-title"><i class="ph ph-graph"></i>Architecture</div>
+
+    <div class="arch-diagram">
+
+      <!-- Entry points -->
+      <div class="arch-row">
+        <div class="abox abox-caller abox-sm">
+          <i class="ph ph-globe" style="font-size:16px;display:block;margin-bottom:3px"></i>
+          Voice SDK<br>Browser
+        </div>
+        <div class="abox abox-caller abox-sm">
+          <i class="ph ph-phone" style="font-size:16px;display:block;margin-bottom:3px"></i>
+          PSTN<br><span class="abox-sub" id="arch-pstn">—</span>
+        </div>
+        <div class="abox abox-caller abox-sm">
+          <i class="ph ph-whatsapp-logo" style="font-size:16px;display:block;margin-bottom:3px;color:#38a169"></i>
+          WhatsApp<br><span class="abox-sub" id="arch-wa">—</span>
+        </div>
+      </div>
+      <div class="arch-arrow">↓</div>
+
+      <!-- Twilio account -->
+      <div class="arch-row">
+        <div class="abox abox-twilio abox-wide">
+          <i class="ph ph-cloud" style="font-size:15px;margin-right:5px;vertical-align:middle"></i>
+          Twilio Demo Account
+          <div class="abox-sub">Inbound phone number → <strong>POST /inbound</strong></div>
+        </div>
+      </div>
+      <div class="arch-arrow">↓</div>
+
+      <!-- Server -->
+      <div class="arch-row">
+        <div class="abox abox-server abox-wide">
+          <i class="ph ph-device-tablet" style="font-size:15px;margin-right:5px;vertical-align:middle"></i>
+          Express Server — Fly.io Sydney
+          <div class="abox-sub">teams-demo.fly.dev</div>
+        </div>
+      </div>
+      <div class="arch-arrow">↓</div>
+
+      <!-- Conversation Relay -->
+      <div class="arch-row">
+        <div class="abox abox-cr abox-wide">
+          <i class="ph ph-broadcast" style="font-size:15px;margin-right:5px;vertical-align:middle"></i>
+          ConversationRelay — WebSocket /cr
+          <div class="abox-sub">Twilio ASR/TTS ↔ OpenAI GPT-4o · ElevenLabs TTS · Deepgram ASR en-AU</div>
+        </div>
+      </div>
+      <div class="arch-arrow">↓ agent announces transfer · sends {type:"end"}</div>
+
+      <!-- /action -->
+      <div class="arch-row">
+        <div class="abox abox-action abox-wide">
+          <i class="ph ph-arrow-circle-right" style="font-size:15px;margin-right:5px;vertical-align:middle"></i>
+          POST /action — <code style="font-size:11px">&lt;Dial timeout="10"&gt;&lt;Teams&gt;</code>
+        </div>
+      </div>
+
+      <!-- Branch -->
+      <div class="arch-split" style="margin-top:0">
+        <div class="arch-branch">
+          <div class="arch-arrow">↓ answers</div>
+          <div class="abox abox-teams abox-med">
+            <i class="ph ph-microsoft-teams-logo" style="font-size:18px;display:block;margin-bottom:4px"></i>
+            Microsoft Teams
+            <div class="abox-sub">Specialist connected</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="abox abox-ok abox-med">
+            <i class="ph ph-check-circle" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
+            Call Connected
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:stretch;padding-top:26px">
+          <div style="width:1px;background:#e2e8f0;margin:0 4px"></div>
+        </div>
+
+        <div class="arch-branch">
+          <div class="arch-arrow">↓ timeout (10 s)</div>
+          <div class="abox abox-action abox-med">
+            <i class="ph ph-clock" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
+            POST /dial-action
+            <div class="abox-sub">Polly.Olivia-Neural message</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="abox abox-flex abox-med">
+            <i class="ph ph-headset" style="font-size:16px;display:block;margin-bottom:4px"></i>
+            Flex Account (B)
+            <div class="abox-sub">Application-to-Application transfer</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+          <div class="abox abox-ok abox-med">
+            <i class="ph ph-check-circle" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
+            Associate Team
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- QR Modal -->
@@ -327,6 +502,8 @@
   function showDialler(token, phoneNumber, whatsappNumber) {
     document.getElementById('demo-number').textContent = phoneNumber || '—';
     document.getElementById('wa-url').textContent = window.location.origin + '/whatsapp-inbound';
+    if (phoneNumber)   document.getElementById('arch-pstn').textContent = phoneNumber;
+    if (whatsappNumber) document.getElementById('arch-wa').textContent  = whatsappNumber;
     if (whatsappNumber) {
       document.getElementById('wa-number').textContent = whatsappNumber;
       show('wa-section');
@@ -335,6 +512,16 @@
     show('log-panel');
     setupDevice(token);
     connectLogStream();
+  }
+
+  function openArch() {
+    document.getElementById('arch-modal').classList.remove('hidden');
+  }
+  function closeArch() {
+    document.getElementById('arch-modal').classList.add('hidden');
+  }
+  function handleArchClick(e) {
+    if (e.target === document.getElementById('arch-modal')) closeArch();
   }
 
   function showQr() {
@@ -558,7 +745,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeQr(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeQr(); closeArch(); } });
     init();
   });
 </script>
