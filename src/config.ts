@@ -29,7 +29,9 @@ export const config = {
   },
   whatsapp: {
     // TwiML App SID in this account that receives A2A transfers from the external WhatsApp account
-    a2aAppSid: process.env.WHATSAPP_A2A_APP_SID,
+    a2aAppSid:   process.env.WHATSAPP_A2A_APP_SID,
+    // WhatsApp number callers can use to reach the demo (display only)
+    phoneNumber: process.env.WHATSAPP_PHONE_NUMBER,
   },
   flex: {
     accountSid:      process.env.FLEX_ACCOUNT_SID!,

@@ -196,15 +196,24 @@
       <i class="ph ph-phone"></i>
     </button>
     <div class="dial-hint" id="hint">Tap to call</div>
-    <div class="divider">or call directly</div>
+    <div class="divider">or call via phone</div>
     <div class="phone-number">
       <i class="ph ph-phone-call"></i>
       <span id="demo-number">—</span>
     </div>
+
+    <div id="wa-section" hidden>
+      <div class="divider">or via WhatsApp</div>
+      <div class="phone-number">
+        <i class="ph ph-whatsapp-logo" style="color:#38a169"></i>
+        <span id="wa-number">—</span>
+      </div>
+    </div>
+
     <div class="copy-row" title="WhatsApp inbound webhook URL">
-      <i class="ph ph-whatsapp-logo" style="font-size:14px;color:#38a169;flex-shrink:0"></i>
+      <i class="ph ph-link" style="font-size:14px;color:#718096;flex-shrink:0"></i>
       <span class="copy-url" id="wa-url">—</span>
-      <button class="copy-btn" id="copy-btn" onclick="copyUrl()" title="Copy to clipboard">
+      <button class="copy-btn" id="copy-btn" onclick="copyUrl()" title="Copy webhook URL">
         <i class="ph ph-copy" id="copy-icon"></i>
       </button>
     </div>
@@ -228,8 +237,8 @@
     try {
       const r = await fetch('/token');
       if (r.status === 401) { show('login-card'); return; }
-      const { token, phoneNumber } = await r.json();
-      showDialler(token, phoneNumber);
+      const { token, phoneNumber, whatsappNumber } = await r.json();
+      showDialler(token, phoneNumber, whatsappNumber);
     } catch { show('login-card'); }
   }
 
@@ -242,15 +251,19 @@
     if (r.ok) {
       document.getElementById('login-card').hidden = true;
       const { token, phoneNumber } = await (await fetch('/token')).json();
-      showDialler(token, phoneNumber);
+      showDialler(token, phoneNumber, whatsappNumber);
     } else {
       document.getElementById('login-error').textContent = 'Incorrect password';
     }
   }
 
-  function showDialler(token, phoneNumber) {
+  function showDialler(token, phoneNumber, whatsappNumber) {
     document.getElementById('demo-number').textContent = phoneNumber || '—';
     document.getElementById('wa-url').textContent = window.location.origin + '/whatsapp-inbound';
+    if (whatsappNumber) {
+      document.getElementById('wa-number').textContent = whatsappNumber;
+      show('wa-section');
+    }
     show('dial-card');
     show('log-panel');
     setupDevice(token);

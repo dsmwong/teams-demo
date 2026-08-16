@@ -21,7 +21,11 @@ router.get('/', requireAuth, (req, res) => {
     incomingAllow: false,
   }));
 
-  res.json({ token: token.toJwt(), phoneNumber: config.twilio.phoneNumber });
+  res.json({
+    token:           token.toJwt(),
+    phoneNumber:     config.twilio.phoneNumber,
+    whatsappNumber:  config.whatsapp.phoneNumber ?? null,
+  });
 });
 
 export default router;
