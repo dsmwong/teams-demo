@@ -162,7 +162,7 @@
     .arch-card {
       background: #fff; border-radius: 20px;
       padding: 28px 32px 24px;
-      max-width: 860px; width: 100%;
+      max-width: 1040px; width: 100%;
       max-height: 90vh; overflow-y: auto;
       box-shadow: 0 12px 48px rgba(0,0,0,0.22);
       position: relative;
@@ -180,9 +180,17 @@
     .arch-close:hover { color: #4a5568; }
 
     /* diagram layout */
+    .arch-two-col { display: flex; gap: 0; align-items: flex-start; width: 100%; }
+    .arch-path { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    .arch-path-label {
+      font-size: 12px; font-weight: 700; color: #fff;
+      background: #4a5568; border-radius: 20px;
+      padding: 3px 14px; margin-bottom: 14px; letter-spacing: .03em;
+    }
+    .arch-vdivider { width: 2px; background: #e2e8f0; margin: 0 20px; align-self: stretch; border-radius: 2px; }
     .arch-diagram { display: flex; flex-direction: column; align-items: center; gap: 0; }
     .arch-row { display: flex; gap: 10px; align-items: stretch; justify-content: center; }
-    .arch-arrow { text-align: center; color: #a0aec0; font-size: 20px; line-height: 1; padding: 2px 0; }
+    .arch-arrow { text-align: center; color: #a0aec0; font-size: 18px; line-height: 1; padding: 2px 0; font-family: sans-serif; }
     .arch-split { display: flex; gap: 24px; justify-content: center; align-items: flex-start; width: 100%; }
     .arch-branch { display: flex; flex-direction: column; align-items: center; gap: 0; flex: 1; }
 
@@ -357,101 +365,138 @@
     <button class="arch-close" onclick="closeArch()"><i class="ph ph-x"></i></button>
     <div class="arch-card-title"><i class="ph ph-graph"></i>Architecture</div>
 
-    <div class="arch-diagram">
+    <div class="arch-two-col">
 
-      <!-- Entry points -->
-      <div class="arch-row">
-        <div class="abox abox-caller abox-sm">
-          <i class="ph ph-globe" style="font-size:16px;display:block;margin-bottom:3px"></i>
-          Voice SDK<br>Browser
-        </div>
-        <div class="abox abox-caller abox-sm">
-          <i class="ph ph-phone" style="font-size:16px;display:block;margin-bottom:3px"></i>
-          PSTN<br><span class="abox-sub" id="arch-pstn">—</span>
-        </div>
-        <div class="abox abox-caller abox-sm">
-          <i class="ph ph-whatsapp-logo" style="font-size:16px;display:block;margin-bottom:3px;color:#38a169"></i>
-          WhatsApp<br><span class="abox-sub" id="arch-wa">—</span>
-        </div>
-      </div>
-      <div class="arch-arrow">↓</div>
+      <!-- ── LEFT: Twilio-mediated path ── -->
+      <div class="arch-path">
+        <div class="arch-path-label">Twilio Programmable Voice</div>
+        <div class="arch-diagram">
 
-      <!-- Twilio account -->
-      <div class="arch-row">
-        <div class="abox abox-twilio abox-wide">
-          <i class="ph ph-cloud" style="font-size:15px;margin-right:5px;vertical-align:middle"></i>
-          Twilio Demo Account
-          <div class="abox-sub">Inbound phone number → <strong>POST /inbound</strong></div>
-        </div>
-      </div>
-      <div class="arch-arrow">↓</div>
-
-      <!-- Server -->
-      <div class="arch-row">
-        <div class="abox abox-server abox-wide">
-          <i class="ph ph-device-tablet" style="font-size:15px;margin-right:5px;vertical-align:middle"></i>
-          Express Server — Fly.io Sydney
-          <div class="abox-sub">teams-demo.fly.dev</div>
-        </div>
-      </div>
-      <div class="arch-arrow">↓</div>
-
-      <!-- Conversation Relay -->
-      <div class="arch-row">
-        <div class="abox abox-cr abox-wide">
-          <i class="ph ph-broadcast" style="font-size:15px;margin-right:5px;vertical-align:middle"></i>
-          ConversationRelay — WebSocket /cr
-          <div class="abox-sub">Twilio ASR/TTS ↔ OpenAI GPT-4o · ElevenLabs TTS · Deepgram ASR en-AU</div>
-        </div>
-      </div>
-      <div class="arch-arrow">↓ agent announces transfer · sends {type:"end"}</div>
-
-      <!-- /action -->
-      <div class="arch-row">
-        <div class="abox abox-action abox-wide">
-          <i class="ph ph-arrow-circle-right" style="font-size:15px;margin-right:5px;vertical-align:middle"></i>
-          POST /action — <code style="font-size:11px">&lt;Dial timeout="10"&gt;&lt;Teams&gt;</code>
-        </div>
-      </div>
-
-      <!-- Branch -->
-      <div class="arch-split" style="margin-top:0">
-        <div class="arch-branch">
-          <div class="arch-arrow">↓ answers</div>
-          <div class="abox abox-teams abox-med">
-            <i class="ph ph-microsoft-teams-logo" style="font-size:18px;display:block;margin-bottom:4px"></i>
-            Microsoft Teams
-            <div class="abox-sub">Specialist connected</div>
+          <div class="arch-row">
+            <div class="abox abox-caller abox-sm">
+              <i class="ph ph-globe" style="font-size:15px;display:block;margin-bottom:3px"></i>
+              Voice SDK<br>Browser
+            </div>
+            <div class="abox abox-caller abox-sm">
+              <i class="ph ph-phone" style="font-size:15px;display:block;margin-bottom:3px"></i>
+              PSTN<br><span class="abox-sub" id="arch-pstn">—</span>
+            </div>
+            <div class="abox abox-caller abox-sm">
+              <i class="ph ph-whatsapp-logo" style="font-size:15px;display:block;margin-bottom:3px;color:#38a169"></i>
+              WhatsApp<br><span class="abox-sub" id="arch-wa">—</span>
+            </div>
           </div>
           <div class="arch-arrow">↓</div>
-          <div class="abox abox-ok abox-med">
+
+          <div class="arch-row">
+            <div class="abox abox-twilio" style="min-width:320px">
+              <i class="ph ph-cloud" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
+              Twilio Demo Account
+              <div class="abox-sub">Inbound number → <strong>POST /inbound</strong></div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-row">
+            <div class="abox abox-server" style="min-width:320px">
+              <i class="ph ph-device-tablet" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
+              Express Server — Fly.io Sydney
+              <div class="abox-sub">teams-demo.fly.dev</div>
+            </div>
+          </div>
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-row">
+            <div class="abox abox-cr" style="min-width:320px">
+              <i class="ph ph-broadcast" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
+              ConversationRelay /cr
+              <div class="abox-sub">GPT-4o · ElevenLabs TTS · Deepgram en-AU</div>
+            </div>
+          </div>
+          <div class="arch-arrow" style="font-size:11px;color:#718096">↓ agent sends {type:"end"}</div>
+
+          <div class="arch-row">
+            <div class="abox abox-action" style="min-width:320px;font-size:11px">
+              <i class="ph ph-arrow-circle-right" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
+              POST /action — &lt;Dial timeout="10"&gt;&lt;Teams&gt;
+            </div>
+          </div>
+
+          <div class="arch-split" style="margin-top:0;width:100%">
+            <div class="arch-branch">
+              <div class="arch-arrow">↓ answers</div>
+              <div class="abox abox-teams" style="min-width:120px">
+                <i class="ph ph-microsoft-teams-logo" style="font-size:16px;display:block;margin-bottom:3px"></i>
+                Teams Specialist
+              </div>
+              <div class="arch-arrow">↓</div>
+              <div class="abox abox-ok" style="min-width:120px;font-size:11px">
+                <i class="ph ph-check-circle" style="font-size:13px;margin-right:3px;vertical-align:middle"></i>
+                Connected
+              </div>
+            </div>
+            <div style="display:flex;align-items:stretch;padding-top:22px">
+              <div style="width:1px;background:#e2e8f0;margin:0 4px"></div>
+            </div>
+            <div class="arch-branch">
+              <div class="arch-arrow">↓ timeout</div>
+              <div class="abox abox-action" style="min-width:120px;font-size:11px">
+                <i class="ph ph-clock" style="font-size:12px;margin-right:3px;vertical-align:middle"></i>
+                /dial-action<br>
+                <span class="abox-sub">Polly message</span>
+              </div>
+              <div class="arch-arrow">↓</div>
+              <div class="abox abox-flex" style="min-width:120px">
+                <i class="ph ph-headset" style="font-size:15px;display:block;margin-bottom:3px"></i>
+                Flex (Account B)
+                <div class="abox-sub">A2A transfer</div>
+              </div>
+              <div class="arch-arrow">↓</div>
+              <div class="abox abox-ok" style="min-width:120px;font-size:11px">
+                <i class="ph ph-check-circle" style="font-size:13px;margin-right:3px;vertical-align:middle"></i>
+                Associate Team
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── vertical divider ── -->
+      <div class="arch-vdivider"></div>
+
+      <!-- ── RIGHT: Direct Operator Connect path ── -->
+      <div class="arch-path" style="max-width:220px">
+        <div class="arch-path-label" style="background:#2b6cb0">Direct via Operator Connect</div>
+        <div class="arch-diagram">
+
+          <div class="abox abox-caller" style="min-width:180px">
+            <i class="ph ph-phone-call" style="font-size:15px;display:block;margin-bottom:3px"></i>
+            Caller dials Teams<br>number directly
+            <div class="abox-sub" id="arch-teams-num">—</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+
+          <div class="abox" style="min-width:180px;background:#ebf8ff;border:2px solid #2b6cb0;color:#1a365d">
+            <i class="ph ph-microsoft-teams-logo" style="font-size:18px;display:block;margin-bottom:4px"></i>
+            Microsoft Teams<br>Operator Connect
+            <div class="abox-sub">Carrier-grade PSTN integration<br>No Twilio involvement</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+
+          <div class="abox abox-teams" style="min-width:180px">
+            <i class="ph ph-user-circle" style="font-size:16px;display:block;margin-bottom:3px"></i>
+            Teams Specialist
+            <div class="abox-sub">Rings directly in Teams client</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+
+          <div class="abox abox-ok" style="min-width:180px">
             <i class="ph ph-check-circle" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
             Call Connected
+            <div class="abox-sub">Bypasses all Twilio programmability,<br>ConversationRelay &amp; A2A transfer</div>
           </div>
-        </div>
 
-        <div style="display:flex;align-items:stretch;padding-top:26px">
-          <div style="width:1px;background:#e2e8f0;margin:0 4px"></div>
-        </div>
-
-        <div class="arch-branch">
-          <div class="arch-arrow">↓ timeout (10 s)</div>
-          <div class="abox abox-action abox-med">
-            <i class="ph ph-clock" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
-            POST /dial-action
-            <div class="abox-sub">Polly.Olivia-Neural message</div>
-          </div>
-          <div class="arch-arrow">↓</div>
-          <div class="abox abox-flex abox-med">
-            <i class="ph ph-headset" style="font-size:16px;display:block;margin-bottom:4px"></i>
-            Flex Account (B)
-            <div class="abox-sub">Application-to-Application transfer</div>
-          </div>
-          <div class="arch-arrow">↓</div>
-          <div class="abox abox-ok abox-med">
-            <i class="ph ph-check-circle" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
-            Associate Team
-          </div>
         </div>
       </div>
 
@@ -479,8 +524,8 @@
     try {
       const r = await fetch('/token');
       if (r.status === 401) { show('login-card'); return; }
-      const { token, phoneNumber, whatsappNumber } = await r.json();
-      showDialler(token, phoneNumber, whatsappNumber);
+      const { token, phoneNumber, whatsappNumber, teamsNumber } = await r.json();
+      showDialler(token, phoneNumber, whatsappNumber, teamsNumber);
     } catch { show('login-card'); }
   }
 
@@ -493,17 +538,18 @@
     if (r.ok) {
       document.getElementById('login-card').hidden = true;
       const { token, phoneNumber } = await (await fetch('/token')).json();
-      showDialler(token, phoneNumber, whatsappNumber);
+      showDialler(token, phoneNumber, whatsappNumber, teamsNumber);
     } else {
       document.getElementById('login-error').textContent = 'Incorrect password';
     }
   }
 
-  function showDialler(token, phoneNumber, whatsappNumber) {
+  function showDialler(token, phoneNumber, whatsappNumber, teamsNumber) {
     document.getElementById('demo-number').textContent = phoneNumber || '—';
     document.getElementById('wa-url').textContent = window.location.origin + '/whatsapp-inbound';
-    if (phoneNumber)   document.getElementById('arch-pstn').textContent = phoneNumber;
-    if (whatsappNumber) document.getElementById('arch-wa').textContent  = whatsappNumber;
+    if (phoneNumber)    document.getElementById('arch-pstn').textContent      = phoneNumber;
+    if (whatsappNumber) document.getElementById('arch-wa').textContent        = whatsappNumber;
+    if (teamsNumber)    document.getElementById('arch-teams-num').textContent = teamsNumber;
     if (whatsappNumber) {
       document.getElementById('wa-number').textContent = whatsappNumber;
       show('wa-section');

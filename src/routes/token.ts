@@ -25,6 +25,7 @@ router.get('/', requireAuth, (req, res) => {
     token:           token.toJwt(),
     phoneNumber:     config.twilio.phoneNumber,
     whatsappNumber:  config.whatsapp.phoneNumber ?? null,
+    teamsNumber:     config.teams.number,
   });
 });
 
