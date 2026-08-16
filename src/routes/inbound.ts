@@ -5,7 +5,8 @@ import { emit } from '../events';
 const router = Router();
 
 router.post('/', (req, res) => {
-  emit('clear', 'New call');
+  const callSid = req.body?.CallSid as string | undefined;
+  emit('clear', 'New call', undefined, callSid);
 
   const { cr } = config;
   const crAttrs = [
@@ -26,8 +27,8 @@ router.post('/', (req, res) => {
       ${crAttrs}/>
   </Connect>
 </Response>`;
-  emit('call', 'Inbound call — playing greeting');
-  emit('twiml', '/inbound', xml);
+  emit('call', 'Inbound call — playing greeting', undefined, callSid);
+  emit('twiml', '/inbound', xml, callSid);
   res.type('text/xml').send(xml);
 });
 

@@ -10,8 +10,9 @@ export interface LogEvent {
   type: LogType;
   label: string;
   detail?: string;
+  callSid?: string;
 }
 
-export function emit(type: LogType, label: string, detail?: string): void {
-  callEvents.emit('log', { ts: new Date().toISOString(), type, label, detail } as LogEvent);
+export function emit(type: LogType, label: string, detail?: string, callSid?: string): void {
+  callEvents.emit('log', { ts: new Date().toISOString(), type, label, detail, callSid } as LogEvent);
 }

@@ -122,12 +122,25 @@
       display: flex;
       flex-direction: column;
     }
-    #log-panel h2 {
-      font-size: 14px; font-weight: 700; color: #1a202c;
-      margin-bottom: 10px; flex-shrink: 0;
+    #log-header {
       display: flex; align-items: center; gap: 7px;
+      margin-bottom: 8px; flex-shrink: 0; flex-wrap: wrap;
     }
-    #log-panel h2 i { font-size: 16px; color: #4a5568; }
+    #log-header h2 {
+      font-size: 14px; font-weight: 700; color: #1a202c;
+      display: flex; align-items: center; gap: 7px; margin: 0;
+    }
+    #log-header h2 i { font-size: 16px; color: #4a5568; }
+    #call-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+    .call-pill {
+      font-size: 10px; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; border: 1.5px solid #e2e8f0;
+      background: #f7fafc; color: #718096; cursor: pointer;
+      font-family: 'SF Mono', 'Monaco', monospace;
+      transition: all .15s;
+    }
+    .call-pill:hover { border-color: #4299e1; color: #3182ce; }
+    .call-pill.active { background: #3182ce; border-color: #3182ce; color: #fff; }
     #log-entries {
       flex: 1; overflow-y: auto;
       font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
@@ -257,7 +270,12 @@
 
   <!-- Live Log -->
   <div id="log-panel" hidden>
-    <h2><i class="ph ph-activity"></i>Live Activity</h2>
+    <div id="log-header">
+      <h2><i class="ph ph-activity"></i>Live Activity</h2>
+      <div id="call-pills">
+        <button class="call-pill active" data-sid="__all__" onclick="setFilter(null)">All</button>
+      </div>
+    </div>
     <div id="log-entries">
       <div class="log-empty" id="log-empty">Waiting for a call…</div>
     </div>
@@ -381,7 +399,6 @@
     error:    'ph-warning',
     clear:    'ph-arrows-clockwise',
   };
-
   const BADGE_CLASS = {
     call:     'badge-call',
     cr:       'badge-cr',
@@ -392,32 +409,75 @@
     clear:    'badge-clear',
   };
 
+  let allEvents      = [];   // full event history
+  let selectedSid    = null; // null = All
+  let knownSids      = [];   // ordered list of seen callSids
+
   function connectLogStream() {
     if (es) es.close();
     es = new EventSource('/log-stream');
     es.onmessage = (e) => {
       const event = JSON.parse(e.data);
-      if (event.type === 'clear') { clearLog(); return; }
-      addLogEntry(event);
+      if (event.type === 'clear') { onNewCall(event.callSid); return; }
+      allEvents.unshift(event);          // newest first
+      if (passesFilter(event)) renderEntry(event, true);
     };
   }
 
-  function clearLog() {
-    document.getElementById('log-entries').innerHTML =
-      '<div class="log-empty" id="log-empty">New call started…</div>';
+  function onNewCall(callSid) {
+    if (callSid && !knownSids.includes(callSid)) {
+      knownSids.push(callSid);
+      addPill(callSid);
+    }
+    // Auto-switch to the new call so the presenter follows along
+    setFilter(callSid ?? null);
   }
 
-  function addLogEntry({ ts, type, label, detail }) {
+  function passesFilter(event) {
+    if (!selectedSid) return true;
+    return event.callSid === selectedSid;
+  }
+
+  function setFilter(sid) {
+    selectedSid = sid;
+    // Update pill active states
+    document.querySelectorAll('.call-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.sid === (sid ?? '__all__'));
+    });
+    // Re-render log with filtered events
+    const container = document.getElementById('log-entries');
+    container.innerHTML = '';
+    const filtered = allEvents.filter(passesFilter);
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="log-empty">No events for this call yet…</div>';
+    } else {
+      filtered.forEach(ev => renderEntry(ev, false));
+    }
+  }
+
+  function addPill(callSid) {
+    const short = callSid.slice(-8);
+    const btn = document.createElement('button');
+    btn.className = 'call-pill';
+    btn.dataset.sid = callSid;
+    btn.textContent = '…' + short;
+    btn.title = callSid;
+    btn.onclick = () => setFilter(callSid);
+    document.getElementById('call-pills').appendChild(btn);
+  }
+
+  function renderEntry(event, animate) {
+    const { ts, type, label, detail } = event;
     const empty = document.getElementById('log-empty');
     if (empty) empty.remove();
 
-    const time      = new Date(ts).toLocaleTimeString('en-AU', { hour12: false });
+    const time       = new Date(ts).toLocaleTimeString('en-AU', { hour12: false });
     const badgeClass = BADGE_CLASS[type] || 'badge-twiml';
     const iconClass  = TYPE_ICONS[type]  || 'ph-dot';
 
     const entry = document.createElement('div');
-    entry.className = 'log-entry new';
-    setTimeout(() => entry.classList.remove('new'), 3000);
+    entry.className = animate ? 'log-entry new' : 'log-entry';
+    if (animate) setTimeout(() => entry.classList.remove('new'), 3000);
     entry.innerHTML =
       `<div class="log-meta">` +
         `<span class="log-time">${time}</span>` +
@@ -426,8 +486,7 @@
       `</div>` +
       (detail ? `<pre class="log-detail">${escHtml(detail.trim())}</pre>` : '');
 
-    const container = document.getElementById('log-entries');
-    container.prepend(entry);
+    document.getElementById('log-entries').prepend(entry);
   }
 
   function escHtml(s) {
