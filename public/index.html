@@ -123,24 +123,25 @@
       flex-direction: column;
     }
     #log-header {
-      display: flex; align-items: center; gap: 7px;
-      margin-bottom: 8px; flex-shrink: 0; flex-wrap: wrap;
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px; flex-shrink: 0;
     }
     #log-header h2 {
       font-size: 14px; font-weight: 700; color: #1a202c;
-      display: flex; align-items: center; gap: 7px; margin: 0;
+      display: flex; align-items: center; gap: 7px; margin: 0; flex-shrink: 0;
     }
     #log-header h2 i { font-size: 16px; color: #4a5568; }
-    #call-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
-    .call-pill {
-      font-size: 10px; font-weight: 600; padding: 2px 8px;
-      border-radius: 10px; border: 1.5px solid #e2e8f0;
-      background: #f7fafc; color: #718096; cursor: pointer;
-      font-family: 'SF Mono', 'Monaco', monospace;
-      transition: all .15s;
+    #call-select {
+      margin-left: auto; font-size: 11px;
+      border: 1.5px solid #e2e8f0; border-radius: 6px;
+      padding: 3px 24px 3px 8px; color: #4a5568;
+      background: #f7fafc; cursor: pointer; outline: none;
+      max-width: 210px; font-family: 'SF Mono','Monaco',monospace;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23718096' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 6px center;
     }
-    .call-pill:hover { border-color: #4299e1; color: #3182ce; }
-    .call-pill.active { background: #3182ce; border-color: #3182ce; color: #fff; }
+    #call-select:focus { border-color: #4299e1; }
     #log-entries {
       flex: 1; overflow-y: auto;
       font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
@@ -272,9 +273,9 @@
   <div id="log-panel" hidden>
     <div id="log-header">
       <h2><i class="ph ph-activity"></i>Live Activity</h2>
-      <div id="call-pills">
-        <button class="call-pill active" data-sid="__all__" onclick="setFilter(null)">All</button>
-      </div>
+      <select id="call-select" onchange="setFilter(this.value || null)">
+        <option value="">All calls</option>
+      </select>
     </div>
     <div id="log-entries">
       <div class="log-empty" id="log-empty">Waiting for a call…</div>
@@ -409,28 +410,58 @@
     clear:    'badge-clear',
   };
 
-  let allEvents      = [];   // full event history
-  let selectedSid    = null; // null = All
-  let knownSids      = [];   // ordered list of seen callSids
+  let allEvents   = [];   // full event history, newest first
+  let selectedSid = null; // null = All
+  let knownSids   = [];   // ordered list of seen callSids
+  const callFroms  = {};  // callSid → formatted "from" label
+  const callTimers = {};  // callSid → removal timeoutId
+  const REMOVAL_MS = 20 * 60 * 1000; // 20 minutes
+
+  function formatFrom(from) {
+    if (!from || from === 'unknown') return '';
+    if (from.startsWith('client:'))   return 'SDK Client';
+    if (from.startsWith('whatsapp:')) return 'WhatsApp ' + from.slice(9);
+    return from; // E.164 phone number
+  }
 
   function connectLogStream() {
     if (es) es.close();
     es = new EventSource('/log-stream');
     es.onmessage = (e) => {
       const event = JSON.parse(e.data);
-      if (event.type === 'clear') { onNewCall(event.callSid); return; }
-      allEvents.unshift(event);          // newest first
+      if (event.type === 'clear') { onNewCall(event); return; }
+      allEvents.unshift(event);
+      if (event.callSid) scheduleRemoval(event.callSid);
       if (passesFilter(event)) renderEntry(event, true);
     };
   }
 
-  function onNewCall(callSid) {
-    if (callSid && !knownSids.includes(callSid)) {
+  function onNewCall(event) {
+    const callSid = event.callSid;
+    if (!callSid) return;
+    const from = formatFrom(event.label);
+    callFroms[callSid] = from;
+    if (!knownSids.includes(callSid)) {
       knownSids.push(callSid);
-      addPill(callSid);
+      addOption(callSid, from);
     }
-    // Auto-switch to the new call so the presenter follows along
-    setFilter(callSid ?? null);
+    scheduleRemoval(callSid);
+    setFilter(callSid); // auto-switch to the new call
+  }
+
+  function scheduleRemoval(callSid) {
+    if (callTimers[callSid]) clearTimeout(callTimers[callSid]);
+    callTimers[callSid] = setTimeout(() => removeCall(callSid), REMOVAL_MS);
+  }
+
+  function removeCall(callSid) {
+    allEvents  = allEvents.filter(e => e.callSid !== callSid);
+    knownSids  = knownSids.filter(s => s !== callSid);
+    delete callFroms[callSid];
+    delete callTimers[callSid];
+    const opt = document.querySelector(`#call-select option[value="${callSid}"]`);
+    if (opt) opt.remove();
+    if (selectedSid === callSid) setFilter(null);
   }
 
   function passesFilter(event) {
@@ -440,11 +471,8 @@
 
   function setFilter(sid) {
     selectedSid = sid;
-    // Update pill active states
-    document.querySelectorAll('.call-pill').forEach(p => {
-      p.classList.toggle('active', p.dataset.sid === (sid ?? '__all__'));
-    });
-    // Re-render log with filtered events
+    const select = document.getElementById('call-select');
+    select.value = sid ?? '';
     const container = document.getElementById('log-entries');
     container.innerHTML = '';
     const filtered = allEvents.filter(passesFilter);
@@ -455,15 +483,14 @@
     }
   }
 
-  function addPill(callSid) {
+  function addOption(callSid, from) {
     const short = callSid.slice(-8);
-    const btn = document.createElement('button');
-    btn.className = 'call-pill';
-    btn.dataset.sid = callSid;
-    btn.textContent = '…' + short;
-    btn.title = callSid;
-    btn.onclick = () => setFilter(callSid);
-    document.getElementById('call-pills').appendChild(btn);
+    const label = from ? `…${short} · ${from}` : `…${short}`;
+    const opt   = document.createElement('option');
+    opt.value       = callSid;
+    opt.textContent = label;
+    opt.title       = callSid;
+    document.getElementById('call-select').appendChild(opt);
   }
 
   function renderEntry(event, animate) {

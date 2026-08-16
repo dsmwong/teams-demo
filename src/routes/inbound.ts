@@ -6,7 +6,8 @@ const router = Router();
 
 router.post('/', (req, res) => {
   const callSid = req.body?.CallSid as string | undefined;
-  emit('clear', 'New call', undefined, callSid);
+  const from    = req.body?.From    as string | undefined;
+  emit('clear', from ?? 'unknown', undefined, callSid);
 
   const { cr } = config;
   const crAttrs = [
