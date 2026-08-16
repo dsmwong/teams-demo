@@ -6,6 +6,7 @@
   <title>Teams Demo</title>
   <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -166,6 +167,39 @@
     .log-empty { color: #a0aec0; font-size: 12px; padding: 16px 0; text-align: center; }
 
     [hidden] { display: none !important; }
+
+    /* ── QR modal ── */
+    #qr-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    #qr-modal.hidden { display: none; }
+    .qr-card {
+      background: #fff; border-radius: 20px;
+      padding: 32px 28px 24px;
+      text-align: center; width: 280px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      position: relative;
+    }
+    .qr-close {
+      position: absolute; top: 12px; right: 14px;
+      background: none; border: none; cursor: pointer;
+      color: #a0aec0; font-size: 20px; line-height: 1;
+    }
+    .qr-close:hover { color: #4a5568; }
+    .qr-title { font-size: 15px; font-weight: 700; color: #1a202c; margin-bottom: 4px; }
+    .qr-sub   { font-size: 12px; color: #718096; margin-bottom: 16px; }
+    #qr-canvas { border-radius: 8px; display: block; margin: 0 auto; }
+    .qr-number { font-size: 16px; font-weight: 700; color: #2d3748; margin-top: 14px; letter-spacing: .04em; }
+    .qr-btn {
+      background: none; border: none; cursor: pointer;
+      color: #718096; padding: 2px 0 0 6px;
+      vertical-align: middle;
+    }
+    .qr-btn:hover { color: #38a169; }
+    .qr-btn i { font-size: 16px; vertical-align: middle; }
   </style>
 </head>
 <body>
@@ -206,6 +240,9 @@
       <div class="phone-number">
         <i class="ph ph-whatsapp-logo" style="color:#38a169"></i>
         <span id="wa-number">—</span>
+        <button class="qr-btn" onclick="showQr()" title="Show QR code">
+          <i class="ph ph-qr-code"></i>
+        </button>
       </div>
     </div>
 
@@ -226,6 +263,18 @@
     </div>
   </div>
 
+</div>
+
+<!-- QR Modal -->
+<div id="qr-modal" class="hidden" onclick="handleModalClick(event)">
+  <div class="qr-card">
+    <button class="qr-close" onclick="closeQr()"><i class="ph ph-x"></i></button>
+    <i class="ph ph-whatsapp-logo" style="font-size:36px;color:#38a169;display:block;margin-bottom:8px"></i>
+    <div class="qr-title">Call via WhatsApp</div>
+    <div class="qr-sub">Scan with your phone camera</div>
+    <canvas id="qr-canvas"></canvas>
+    <div class="qr-number" id="qr-number-label">—</div>
+  </div>
 </div>
 
 <script>
@@ -267,6 +316,26 @@
     show('log-panel');
     setupDevice(token);
     connectLogStream();
+  }
+
+  function showQr() {
+    const num = document.getElementById('wa-number').textContent;
+    // Build wa.me URL — strip leading + for the path
+    const waUrl = 'https://wa.me/' + num.replace(/^\+/, '').replace(/\s/g, '');
+    document.getElementById('qr-number-label').textContent = num;
+    const canvas = document.getElementById('qr-canvas');
+    QRCode.toCanvas(canvas, waUrl, { width: 200, margin: 1 }, (err) => {
+      if (err) console.error(err);
+    });
+    document.getElementById('qr-modal').classList.remove('hidden');
+  }
+
+  function closeQr() {
+    document.getElementById('qr-modal').classList.add('hidden');
+  }
+
+  function handleModalClick(e) {
+    if (e.target === document.getElementById('qr-modal')) closeQr();
   }
 
   function copyUrl() {
@@ -399,6 +468,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeQr(); });
     init();
   });
 </script>
