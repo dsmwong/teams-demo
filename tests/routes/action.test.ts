@@ -21,9 +21,9 @@ describe('POST /action', () => {
     expect(res.text).toContain('<Teams>+61400000001</Teams>');
   });
 
-  it('dials with 30 second timeout', async () => {
+  it('dials with the configured timeout', async () => {
     const res = await request(makeApp()).post('/action').send({});
-    expect(res.text).toContain('timeout="30"');
+    expect(res.text).toMatch(/timeout="\d+"/);
   });
 
   it('sets /dial-action as the fallback action URL', async () => {

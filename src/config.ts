@@ -23,7 +23,10 @@ export const config = {
     phoneNumber: process.env.TWILIO_PHONE_NUMBER!,
     twimlAppSid: process.env.TWILIO_TWIML_APP_SID!,
   },
-  teams:  { number: process.env.TEAMS_NUMBER! },
+  teams: {
+    number:  process.env.TEAMS_NUMBER!,
+    timeout: parseInt(process.env.TEAMS_DIAL_TIMEOUT ?? '10', 10),
+  },
   flex: {
     accountSid:     process.env.FLEX_ACCOUNT_SID!,
     applicationSid: process.env.FLEX_APPLICATION_SID!,
