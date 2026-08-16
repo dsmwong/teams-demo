@@ -70,6 +70,18 @@
     .dial-btn.active { background: #e53e3e; }
     .dial-btn i { font-size: 30px; color: #fff; }
     .dial-hint { font-size: 12px; color: #718096; }
+    .divider {
+      display: flex; align-items: center; gap: 8px;
+      margin: 18px 0 12px; color: #cbd5e0; font-size: 11px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: #e2e8f0;
+    }
+    .phone-number {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      font-size: 18px; font-weight: 700; color: #2d3748; letter-spacing: .04em;
+    }
+    .phone-number i { font-size: 17px; color: #718096; }
 
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .icon-spin { animation: spin 0.8s linear infinite; }
@@ -159,6 +171,11 @@
       <i class="ph ph-phone"></i>
     </button>
     <div class="dial-hint" id="hint">Tap to call</div>
+    <div class="divider">or call directly</div>
+    <div class="phone-number">
+      <i class="ph ph-phone-call"></i>
+      <span id="demo-number">—</span>
+    </div>
   </div>
 
   <!-- Live Log -->
@@ -179,11 +196,8 @@
     try {
       const r = await fetch('/token');
       if (r.status === 401) { show('login-card'); return; }
-      const { token } = await r.json();
-      show('dial-card');
-      show('log-panel');
-      setupDevice(token);
-      connectLogStream();
+      const { token, phoneNumber } = await r.json();
+      showDialler(token, phoneNumber);
     } catch { show('login-card'); }
   }
 
@@ -195,14 +209,19 @@
     });
     if (r.ok) {
       document.getElementById('login-card').hidden = true;
-      const { token } = await (await fetch('/token')).json();
-      show('dial-card');
-      show('log-panel');
-      setupDevice(token);
-      connectLogStream();
+      const { token, phoneNumber } = await (await fetch('/token')).json();
+      showDialler(token, phoneNumber);
     } else {
       document.getElementById('login-error').textContent = 'Incorrect password';
     }
+  }
+
+  function showDialler(token, phoneNumber) {
+    document.getElementById('demo-number').textContent = phoneNumber || '—';
+    show('dial-card');
+    show('log-panel');
+    setupDevice(token);
+    connectLogStream();
   }
 
   // ── Voice SDK ─────────────────────────────────────────────────────────────
