@@ -367,7 +367,45 @@
 
     <div class="arch-two-col">
 
-      <!-- ── LEFT: Twilio-mediated path ── -->
+      <!-- ── LEFT: Direct Operator Connect path ── -->
+      <div class="arch-path" style="max-width:220px">
+        <div class="arch-path-label" style="background:#2b6cb0">Direct via Operator Connect</div>
+        <div class="arch-diagram">
+
+          <div class="abox abox-caller" style="min-width:180px">
+            <i class="ph ph-phone-call" style="font-size:15px;display:block;margin-bottom:3px"></i>
+            Caller dials Teams<br>number directly
+            <div class="abox-sub" id="arch-teams-num">—</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+
+          <div class="abox" style="min-width:180px;background:#ebf8ff;border:2px solid #2b6cb0;color:#1a365d">
+            <i class="ph ph-microsoft-teams-logo" style="font-size:18px;display:block;margin-bottom:4px"></i>
+            Microsoft Teams<br>Operator Connect
+            <div class="abox-sub">Carrier-grade PSTN integration<br>No Twilio involvement</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+
+          <div class="abox abox-teams" style="min-width:180px">
+            <i class="ph ph-user-circle" style="font-size:16px;display:block;margin-bottom:3px"></i>
+            Teams Specialist
+            <div class="abox-sub">Rings directly in Teams client</div>
+          </div>
+          <div class="arch-arrow">↓</div>
+
+          <div class="abox abox-ok" style="min-width:180px">
+            <i class="ph ph-check-circle" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
+            Call Connected
+            <div class="abox-sub">Bypasses all Twilio programmability,<br>ConversationRelay &amp; A2A transfer</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── vertical divider ── -->
+      <div class="arch-vdivider"></div>
+
+      <!-- ── RIGHT: Twilio-mediated path ── -->
       <div class="arch-path">
         <div class="arch-path-label">Twilio Programmable Voice</div>
         <div class="arch-diagram">
@@ -457,44 +495,6 @@
                 Associate Team
               </div>
             </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ── vertical divider ── -->
-      <div class="arch-vdivider"></div>
-
-      <!-- ── RIGHT: Direct Operator Connect path ── -->
-      <div class="arch-path" style="max-width:220px">
-        <div class="arch-path-label" style="background:#2b6cb0">Direct via Operator Connect</div>
-        <div class="arch-diagram">
-
-          <div class="abox abox-caller" style="min-width:180px">
-            <i class="ph ph-phone-call" style="font-size:15px;display:block;margin-bottom:3px"></i>
-            Caller dials Teams<br>number directly
-            <div class="abox-sub" id="arch-teams-num">—</div>
-          </div>
-          <div class="arch-arrow">↓</div>
-
-          <div class="abox" style="min-width:180px;background:#ebf8ff;border:2px solid #2b6cb0;color:#1a365d">
-            <i class="ph ph-microsoft-teams-logo" style="font-size:18px;display:block;margin-bottom:4px"></i>
-            Microsoft Teams<br>Operator Connect
-            <div class="abox-sub">Carrier-grade PSTN integration<br>No Twilio involvement</div>
-          </div>
-          <div class="arch-arrow">↓</div>
-
-          <div class="abox abox-teams" style="min-width:180px">
-            <i class="ph ph-user-circle" style="font-size:16px;display:block;margin-bottom:3px"></i>
-            Teams Specialist
-            <div class="abox-sub">Rings directly in Teams client</div>
-          </div>
-          <div class="arch-arrow">↓</div>
-
-          <div class="abox abox-ok" style="min-width:180px">
-            <i class="ph ph-check-circle" style="font-size:14px;margin-right:4px;vertical-align:middle"></i>
-            Call Connected
-            <div class="abox-sub">Bypasses all Twilio programmability,<br>ConversationRelay &amp; A2A transfer</div>
           </div>
 
         </div>
