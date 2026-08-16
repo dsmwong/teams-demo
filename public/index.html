@@ -513,7 +513,13 @@
       `</div>` +
       (detail ? `<pre class="log-detail">${escHtml(detail.trim())}</pre>` : '');
 
-    document.getElementById('log-entries').prepend(entry);
+    // Live events: prepend so newest stays at top.
+    // Re-renders: allEvents is newest-first so append preserves that order.
+    if (animate) {
+      document.getElementById('log-entries').prepend(entry);
+    } else {
+      document.getElementById('log-entries').appendChild(entry);
+    }
   }
 
   function escHtml(s) {
