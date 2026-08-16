@@ -86,6 +86,14 @@
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .icon-spin { animation: spin 0.8s linear infinite; }
 
+    @keyframes log-flash {
+      0%   { background-color: #ebf8ff; }
+      40%  { background-color: transparent; }
+      70%  { background-color: #ebf8ff; }
+      100% { background-color: transparent; }
+    }
+    .log-entry.new { animation: log-flash 3s ease-in-out; }
+
     /* ── log panel ── */
     #log-panel {
       width: 560px;
@@ -291,7 +299,8 @@
     const iconClass  = TYPE_ICONS[type]  || 'ph-dot';
 
     const entry = document.createElement('div');
-    entry.className = 'log-entry';
+    entry.className = 'log-entry new';
+    setTimeout(() => entry.classList.remove('new'), 3000);
     entry.innerHTML =
       `<div class="log-meta">` +
         `<span class="log-time">${time}</span>` +
