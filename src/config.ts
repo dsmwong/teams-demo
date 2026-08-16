@@ -36,7 +36,7 @@ export const config = {
     applicationSid:  process.env.FLEX_APPLICATION_SID!,
     transferMessage: process.env.FLEX_TRANSFER_MESSAGE
       ?? "I'm sorry, the specialist is currently unavailable. Let me transfer you to our associate team who will be happy to help.",
-    transferVoice:   process.env.FLEX_TRANSFER_VOICE ?? 'Polly.Olivia',
+    transferVoice:   process.env.FLEX_TRANSFER_VOICE ?? 'Polly.Olivia-Neural',
   },
   openai: { apiKey: process.env.OPENAI_API_KEY! },
   greetingMessage: process.env.GREETING_MESSAGE!,
