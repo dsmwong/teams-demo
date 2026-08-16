@@ -6,7 +6,7 @@
   <title>Teams Demo</title>
   <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -272,7 +272,7 @@
     <i class="ph ph-whatsapp-logo" style="font-size:36px;color:#38a169;display:block;margin-bottom:8px"></i>
     <div class="qr-title">Call via WhatsApp</div>
     <div class="qr-sub">Scan with your phone camera</div>
-    <canvas id="qr-canvas"></canvas>
+    <div id="qr-container" style="display:inline-block;line-height:0;border-radius:8px;overflow:hidden"></div>
     <div class="qr-number" id="qr-number-label">—</div>
   </div>
 </div>
@@ -320,13 +320,11 @@
 
   function showQr() {
     const num = document.getElementById('wa-number').textContent;
-    // Build wa.me URL — strip leading + for the path
     const waUrl = 'https://wa.me/' + num.replace(/^\+/, '').replace(/\s/g, '');
     document.getElementById('qr-number-label').textContent = num;
-    const canvas = document.getElementById('qr-canvas');
-    QRCode.toCanvas(canvas, waUrl, { width: 200, margin: 1 }, (err) => {
-      if (err) console.error(err);
-    });
+    const container = document.getElementById('qr-container');
+    container.innerHTML = '';
+    new QRCode(container, { text: waUrl, width: 200, height: 200 });
     document.getElementById('qr-modal').classList.remove('hidden');
   }
 
