@@ -16,7 +16,9 @@ router.post('/', (req, res) => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial>
-    <Application applicationSid="${config.flex.applicationSid}"/>
+    <Application>
+      <ApplicationSid>${config.flex.applicationSid}</ApplicationSid>
+    </Application>
   </Dial>
 </Response>`;
   emit('twiml', '/dial-action', xml);

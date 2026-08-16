@@ -16,14 +16,16 @@ describe('POST /dial-action', () => {
       .post('/dial-action')
       .send({ DialCallStatus: 'no-answer' });
     expect(res.type).toMatch(/xml/);
-    expect(res.text).toContain('<Application applicationSid="APflex0000000000000000000000000000"');
+    expect(res.text).toContain('<Application>');
+    expect(res.text).toContain('<ApplicationSid>APflex0000000000000000000000000000</ApplicationSid>');
   });
 
   it('returns Flex Application TwiML when Teams call failed', async () => {
     const res = await request(makeApp())
       .post('/dial-action')
       .send({ DialCallStatus: 'failed' });
-    expect(res.text).toContain('<Application');
+    expect(res.text).toContain('<Application>');
+    expect(res.text).toContain('<ApplicationSid>');
   });
 
   it('returns empty response when Teams call completed normally', async () => {
