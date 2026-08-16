@@ -282,8 +282,7 @@
       (detail ? `<pre class="log-detail">${escHtml(detail.trim())}</pre>` : '');
 
     const container = document.getElementById('log-entries');
-    container.appendChild(entry);
-    container.scrollTop = container.scrollHeight;
+    container.prepend(entry);
   }
 
   function escHtml(s) {
