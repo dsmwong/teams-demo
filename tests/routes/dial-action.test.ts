@@ -11,13 +11,16 @@ function makeApp() {
 }
 
 describe('POST /dial-action', () => {
-  it('returns Flex Application TwiML when Teams timed out', async () => {
+  it('returns <Say> message then Flex Application TwiML when Teams timed out', async () => {
     const res = await request(makeApp())
       .post('/dial-action')
       .send({ DialCallStatus: 'no-answer' });
     expect(res.type).toMatch(/xml/);
+    expect(res.text).toContain('<Say');
     expect(res.text).toContain('<Application>');
     expect(res.text).toContain('<ApplicationSid>APflex0000000000000000000000000000</ApplicationSid>');
+    // Say must appear before Dial in the response
+    expect(res.text.indexOf('<Say')).toBeLessThan(res.text.indexOf('<Dial'));
   });
 
   it('returns Flex Application TwiML when Teams call failed', async () => {

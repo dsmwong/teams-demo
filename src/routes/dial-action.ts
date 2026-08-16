@@ -12,9 +12,10 @@ router.post('/', (req, res) => {
     return;
   }
 
-  emit('transfer', `Teams no answer (${status ?? 'unknown'}) — falling back to Flex`);
+  emit('transfer', `Teams no answer (${status ?? 'unknown'}) — playing message then transferring to Flex`);
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
+  <Say voice="${config.flex.transferVoice}">${config.flex.transferMessage}</Say>
   <Dial>
     <Application>
       <ApplicationSid>${config.flex.applicationSid}</ApplicationSid>

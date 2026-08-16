@@ -28,8 +28,11 @@ export const config = {
     timeout: parseInt(process.env.TEAMS_DIAL_TIMEOUT ?? '10', 10),
   },
   flex: {
-    accountSid:     process.env.FLEX_ACCOUNT_SID!,
-    applicationSid: process.env.FLEX_APPLICATION_SID!,
+    accountSid:      process.env.FLEX_ACCOUNT_SID!,
+    applicationSid:  process.env.FLEX_APPLICATION_SID!,
+    transferMessage: process.env.FLEX_TRANSFER_MESSAGE
+      ?? "I'm sorry, the specialist is currently unavailable. Let me transfer you to our associate team who will be happy to help.",
+    transferVoice:   process.env.FLEX_TRANSFER_VOICE ?? 'Polly.Olivia',
   },
   openai: { apiKey: process.env.OPENAI_API_KEY! },
   greetingMessage: process.env.GREETING_MESSAGE!,
