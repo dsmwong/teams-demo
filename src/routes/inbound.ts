@@ -18,6 +18,7 @@ router.post('/', (req, res) => {
     cr.language              ? `language="${cr.language}"`                            : '',
     cr.transcriptionProvider ? `transcriptionProvider="${cr.transcriptionProvider}"` : '',
     cr.speechModel           ? `speechModel="${cr.speechModel}"`                     : '',
+    cr.intelligenceService   ? `intelligenceService="${cr.intelligenceService}"`     : '',
   ].filter(Boolean).join('\n      ');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

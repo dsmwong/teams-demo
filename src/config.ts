@@ -51,5 +51,6 @@ export const config = {
     language:              process.env.CR_LANGUAGE,
     transcriptionProvider: process.env.CR_TRANSCRIPTION_PROVIDER,
     speechModel:           process.env.CR_SPEECH_MODEL,
+    intelligenceService:   process.env.CR_INTELLIGENCE_SERVICE_SID,
   },
 };
