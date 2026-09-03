@@ -2,6 +2,9 @@ import request from 'supertest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import customerConfigRouter from '../../src/routes/customer-config';
+import { setCustomerConfig } from '../../src/customer-config';
+
+beforeEach(() => setCustomerConfig({ name: '', mobile: '', accountType: '', accountLastFour: '' }));
 
 function makeApp() {
   const app = express();
