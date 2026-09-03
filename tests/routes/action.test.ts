@@ -30,4 +30,15 @@ describe('POST /action', () => {
     const res = await request(makeApp()).post('/action').send({});
     expect(res.text).toContain('action="/dial-action"');
   });
+
+  it('routes to Flex A2A TwiML when HandoffData reason is verify_failed', async () => {
+    const res = await request(makeApp())
+      .post('/action')
+      .send({ HandoffData: JSON.stringify({ reason: 'verify_failed' }) });
+    expect(res.type).toMatch(/xml/);
+    expect(res.text).toContain('<Application>');
+    expect(res.text).toContain('<ApplicationSid>');
+    expect(res.text).toContain('<Say');
+    expect(res.text).not.toContain('<Teams>');
+  });
 });
