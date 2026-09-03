@@ -297,6 +297,30 @@
     }
     .qr-btn:hover { color: #38a169; }
     .qr-btn i { font-size: 16px; vertical-align: middle; }
+
+    /* ── customer config modal ── */
+    .cfg-btn {
+      background: none; border: 1.5px solid #e2e8f0; border-radius: 6px;
+      padding: 4px 8px; cursor: pointer; color: #718096;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; margin-bottom: 16px; transition: all .15s;
+    }
+    .cfg-btn:hover { border-color: #4299e1; color: #3182ce; }
+    .cfg-btn i { font-size: 13px; }
+    .cfg-label { font-size: 11px; font-weight: 600; color: #4a5568; display: block; margin-bottom: 4px; }
+    .cfg-input {
+      width: 100%; padding: 8px 10px;
+      border: 1.5px solid #e2e8f0; border-radius: 6px;
+      font-size: 13px; margin-bottom: 10px; outline: none;
+    }
+    .cfg-input:focus { border-color: #4299e1; }
+    .cfg-save {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      background: #3182ce; color: #fff; font-size: 14px;
+      font-weight: 600; cursor: pointer; transition: opacity .15s;
+    }
+    .cfg-save:hover { opacity: .88; }
+    .cfg-saved { color: #38a169; font-size: 12px; text-align: center; margin-top: 6px; min-height: 18px; }
   </style>
 </head>
 <body>
@@ -315,6 +339,9 @@
   <div id="dial-card" class="card" hidden>
     <h1>Teams Demo</h1>
     <p class="subtitle">Voice SDK Client</p>
+    <button class="cfg-btn" onclick="openCfg()" title="Set customer details">
+      <i class="ph ph-user-gear"></i>Customer Config
+    </button>
     <div class="sdk-row">
       <i class="ph ph-circle-dashed" id="sdk-icon" style="color:#a0aec0"></i>
       <span id="sdk-label">Initialising…</span>
@@ -374,6 +401,26 @@
     </div>
   </div>
 
+</div>
+
+<!-- Customer Config Modal -->
+<div id="cfg-modal" class="hidden" onclick="handleCfgClick(event)">
+  <div class="qr-card" style="width:320px">
+    <button class="qr-close" onclick="closeCfg()"><i class="ph ph-x"></i></button>
+    <i class="ph ph-user-circle" style="font-size:32px;color:#4a5568;display:block;margin-bottom:6px"></i>
+    <div class="qr-title">Customer on File</div>
+    <div class="qr-sub" style="margin-bottom:14px">Details injected into the AI agent</div>
+    <label class="cfg-label">Full Name</label>
+    <input class="cfg-input" id="cfg-name" type="text" placeholder="e.g. Dan Wong" />
+    <label class="cfg-label">Mobile Number (E.164)</label>
+    <input class="cfg-input" id="cfg-mobile" type="tel" placeholder="e.g. +61412345678" />
+    <label class="cfg-label">Account Type</label>
+    <input class="cfg-input" id="cfg-acct-type" type="text" placeholder="e.g. Business Savings" />
+    <label class="cfg-label">Account Last 4 Digits</label>
+    <input class="cfg-input" id="cfg-acct-four" type="text" maxlength="4" placeholder="e.g. {US_BANK_ACCOUNT_NUMBER}" />
+    <button class="cfg-save" onclick="saveCfg()">Save</button>
+    <div class="cfg-saved" id="cfg-saved"></div>
+  </div>
 </div>
 
 <!-- Architecture Modal -->
@@ -605,6 +652,45 @@
     if (e.target === document.getElementById('qr-modal')) closeQr();
   }
 
+  async function openCfg() {
+    const r = await fetch('/customer-config');
+    if (r.ok) {
+      const d = await r.json();
+      document.getElementById('cfg-name').value      = d.name      || '';
+      document.getElementById('cfg-mobile').value    = d.mobile    || '';
+      document.getElementById('cfg-acct-type').value = d.accountType     || '';
+      document.getElementById('cfg-acct-four').value = d.accountLastFour || '';
+    }
+    document.getElementById('cfg-saved').textContent = '';
+    document.getElementById('cfg-modal').classList.remove('hidden');
+  }
+
+  function closeCfg() {
+    document.getElementById('cfg-modal').classList.add('hidden');
+  }
+
+  function handleCfgClick(e) {
+    if (e.target === document.getElementById('cfg-modal')) closeCfg();
+  }
+
+  async function saveCfg() {
+    const body = {
+      name:            document.getElementById('cfg-name').value,
+      mobile:          document.getElementById('cfg-mobile').value,
+      accountType:     document.getElementById('cfg-acct-type').value,
+      accountLastFour: document.getElementById('cfg-acct-four').value,
+    };
+    const r = await fetch('/customer-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (r.ok) {
+      document.getElementById('cfg-saved').textContent = '✓ Saved';
+      setTimeout(closeCfg, 800);
+    }
+  }
+
   function copyUrl() {
     const url = window.location.origin + '/whatsapp-inbound';
     navigator.clipboard.writeText(url).then(() => {
@@ -832,7 +918,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeQr(); closeArch(); } });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeQr(); closeArch(); closeCfg(); } });
     init();
   });
 </script>
