@@ -1,29 +1,162 @@
 import WebSocket from 'ws';
 import { OpenAI } from 'openai';
+import Twilio from 'twilio';
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from '../config';
 import { emit } from '../events';
+import { getCustomerConfig, CustomerConfig } from '../customer-config';
 
-function loadSystemPrompt(): string {
-  return fs.readFileSync(
+const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'send_otp',
+      description: "Send a 6-digit SMS verification code to the caller's registered mobile number.",
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'check_otp',
+      description: 'Verify the code spoken by the caller.',
+      parameters: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'The digits spoken by the caller, e.g. "123456"' },
+        },
+        required: ['code'],
+      },
+    },
+  },
+];
+
+function buildSystemPrompt(customer: CustomerConfig): string {
+  const base = fs.readFileSync(
     path.join(process.cwd(), 'prompts', 'system-prompt.md'),
     'utf-8'
   );
+  const ctx = `## Customer on file
+- Name: ${customer.name || 'Unknown'}
+- Mobile: ${customer.mobile || 'Not registered'} (last 4: ${customer.mobile?.slice(-4) || '????'})
+- Account type: ${customer.accountType || 'Unknown'}
+- Account ending in: ${customer.accountLastFour || 'Unknown'}
+
+`;
+  return ctx + base;
 }
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
+async function executeTool(
+  tc: OpenAI.Chat.Completions.ChatCompletionMessageToolCall,
+  customer: CustomerConfig,
+  attempts: number,
+  setAttempts: (n: number) => void,
+  callSid: string | undefined
+): Promise<string> {
+  const twilioClient = Twilio(config.twilio.accountSid, config.twilio.authToken);
+
+  if (tc.function.name === 'send_otp') {
+    await twilioClient.verify.v2
+      .services(config.verify.serviceSid!)
+      .verifications.create({ to: customer.mobile, channel: 'sms' });
+    emit('cr', `OTP sent to ...${customer.mobile?.slice(-4)}`, undefined, callSid);
+    return `Verification code sent to ${customer.mobile}.`;
+  }
+
+  if (tc.function.name === 'check_otp') {
+    const args = JSON.parse(tc.function.arguments) as { code: string };
+    const check = await twilioClient.verify.v2
+      .services(config.verify.serviceSid!)
+      .verificationChecks.create({ to: customer.mobile, code: args.code });
+
+    if (check.status === 'approved') {
+      emit('cr', 'OTP verified ✓', undefined, callSid);
+      return 'approved';
+    }
+
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+    emit('error', `OTP incorrect (attempt ${newAttempts}/2)`, undefined, callSid);
+
+    if (newAttempts >= 2) {
+      return 'failed — maximum attempts reached. Apologise to the caller and end with [VERIFY_FAILED].';
+    }
+    return `incorrect — ${2 - newAttempts} attempt(s) remaining. Ask the caller to try again.`;
+  }
+
+  return 'unknown tool';
+}
+
+async function runAgentLoop(
+  openai: OpenAI,
+  history: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+  customer: CustomerConfig,
+  ws: WebSocket,
+  callSid: string | undefined,
+  attempts: number,
+  setAttempts: (n: number) => void
+): Promise<void> {
+  while (true) {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: buildSystemPrompt(customer) },
+        ...history,
+      ],
+      tools: TOOLS,
+    });
+
+    const choice = response.choices[0];
+    // Add the assistant message to history (may contain tool_calls)
+    history.push(choice.message as OpenAI.Chat.Completions.ChatCompletionMessageParam);
+
+    if (choice.finish_reason === 'tool_calls' && choice.message.tool_calls) {
+      for (const tc of choice.message.tool_calls) {
+        const result = await executeTool(tc, customer, attempts, setAttempts, callSid);
+        // Sync attempts back (setAttempts mutates the outer variable via closure)
+        history.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          content: result,
+        });
+      }
+      continue; // loop back to get agent's next response
+    }
+
+    // Text response
+    const fullResponse = choice.message.content ?? '';
+    const shouldTransfer     = fullResponse.includes('[TRANSFER]');
+    const shouldVerifyFailed = fullResponse.includes('[VERIFY_FAILED]');
+    const clean = fullResponse.replace('[TRANSFER]', '').replace('[VERIFY_FAILED]', '').trim();
+
+    history.push({ role: 'assistant', content: clean });
+    emit('ai', `Agent: "${clean.length > 120 ? clean.slice(0, 120) + '…' : clean}"`, undefined, callSid);
+
+    const words = clean.split(/\s+/).filter(Boolean);
+    for (let i = 0; i < words.length; i++) {
+      ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
+    }
+
+    if (shouldTransfer) {
+      emit('transfer', 'Agent triggering transfer to Teams', undefined, callSid);
+      ws.send(JSON.stringify({ type: 'end', handoffData: JSON.stringify({ reason: 'transfer' }) }));
+    } else if (shouldVerifyFailed) {
+      emit('transfer', 'Verification failed — routing to Flex', undefined, callSid);
+      ws.send(JSON.stringify({ type: 'end', handoffData: JSON.stringify({ reason: 'verify_failed' }) }));
+    }
+    return;
+  }
 }
 
 export function handleConversationRelay(ws: WebSocket): void {
   console.log('[CR] WebSocket connected');
   emit('cr', 'ConversationRelay connected');
-  // Client created inside function so each session gets a fresh instance (required for testability)
   const openai = new OpenAI({ apiKey: config.openai.apiKey });
-  const history: ChatMessage[] = [];
+  const history: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
   let callSid: string | undefined;
+  let customer: CustomerConfig = { name: '', mobile: '', accountType: '', accountLastFour: '' };
+  let verificationAttempts = 0;
 
   ws.on('close', (code, reason) => {
     console.log(`[CR] WebSocket closed code=${code} reason=${reason.toString()}`);
@@ -40,7 +173,8 @@ export function handleConversationRelay(ws: WebSocket): void {
     console.log(`[CR] message type=${msg.type}${msg.type === 'prompt' ? ` voice="${msg.voicePrompt}"` : ''}`);
 
     if (msg.type === 'setup') {
-      callSid = msg.callSid;
+      callSid  = msg.callSid;
+      customer = getCustomerConfig(); // snapshot at session start
       emit('cr', `Setup — CallSid: ${callSid ?? 'unknown'}`, undefined, callSid);
       return;
     }
@@ -51,38 +185,14 @@ export function handleConversationRelay(ws: WebSocket): void {
     history.push({ role: 'user', content: msg.voicePrompt });
 
     try {
-      const stream = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: loadSystemPrompt() },
-          ...history,
-        ],
-        stream: true,
-      });
-
-      let fullResponse = '';
-      for await (const chunk of stream) {
-        fullResponse += chunk.choices[0]?.delta?.content ?? '';
-      }
-
-      const shouldTransfer = fullResponse.includes('[TRANSFER]');
-      const clean = fullResponse.replace('[TRANSFER]', '').trim();
-      history.push({ role: 'assistant', content: clean });
-
-      emit('ai', `Agent: "${clean.length > 120 ? clean.slice(0, 120) + '…' : clean}"`, undefined, callSid);
-      if (shouldTransfer) emit('transfer', 'Agent triggering transfer to Teams', undefined, callSid);
-
-      const words = clean.split(/\s+/).filter(Boolean);
-      for (let i = 0; i < words.length; i++) {
-        ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
-      }
-
-      if (shouldTransfer) {
-        ws.send(JSON.stringify({ type: 'end', handoffData: '{}' }));
-      }
+      await runAgentLoop(
+        openai, history, customer, ws, callSid,
+        verificationAttempts,
+        (n) => { verificationAttempts = n; }
+      );
     } catch (err) {
-      console.error('ConversationRelay OpenAI error:', err);
-      emit('error', `OpenAI error: ${(err as Error).message}`, undefined, callSid);
+      console.error('ConversationRelay error:', err);
+      emit('error', `CR error: ${(err as Error).message}`, undefined, callSid);
       ws.send(JSON.stringify({ type: 'end', handoffData: '{}' }));
     }
   });

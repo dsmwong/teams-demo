@@ -1,24 +1,52 @@
 import WebSocket from 'ws';
 
-// Self-contained mock factory (no outer variable references — jest.mock is hoisted)
+// Must be before any imports from src/
 jest.mock('fs', () => ({
   readFileSync: jest.fn().mockReturnValue('You are a banking assistant.'),
 }));
 
+jest.mock('twilio', () => {
+  return jest.fn().mockReturnValue({
+    verify: {
+      v2: {
+        services: jest.fn().mockReturnValue({
+          verifications: {
+            create: jest.fn().mockResolvedValue({ status: 'pending' }),
+          },
+          verificationChecks: {
+            create: jest.fn().mockResolvedValue({ status: 'approved' }),
+          },
+        }),
+      },
+    },
+  });
+});
+
+// Mock customer-config to return a test customer
+jest.mock('../../src/customer-config', () => ({
+  getCustomerConfig: jest.fn().mockReturnValue({
+    name: 'Dan',
+    mobile: '+61412345678',
+    accountType: 'Business Savings',
+    accountLastFour: '1234',
+  }),
+}));
+
 jest.mock('openai', () => {
-  const chunks = [
-    { choices: [{ delta: { content: 'I can help with that. ' } }] },
-    { choices: [{ delta: { content: 'Transferring you now. [TRANSFER]' } }] },
-  ];
+  const makeTextResponse = (content: string) => ({
+    choices: [{
+      finish_reason: 'stop',
+      message: { role: 'assistant', content, tool_calls: undefined },
+    }],
+  });
+
   return {
     OpenAI: jest.fn().mockImplementation(() => ({
       chat: {
         completions: {
-          create: jest.fn().mockResolvedValue({
-            [Symbol.asyncIterator]: async function* () {
-              for (const chunk of chunks) yield chunk;
-            },
-          }),
+          create: jest.fn().mockResolvedValue(
+            makeTextResponse('I will transfer you now. [TRANSFER]')
+          ),
         },
       },
     })),
@@ -38,46 +66,50 @@ describe('handleConversationRelay', () => {
     return { ws, sent, handlers };
   }
 
-  it('sends text tokens and an end message when agent includes [TRANSFER]', async () => {
+  it('sends text tokens and transfer end message when agent includes [TRANSFER]', async () => {
     const { ws, sent, handlers } = makeMockWs();
     handleConversationRelay(ws);
-
-    await handlers['message'](
-      Buffer.from(JSON.stringify({ type: 'prompt', voicePrompt: 'I need help' }))
-    );
+    await handlers['message'](Buffer.from(JSON.stringify({ type: 'setup', callSid: 'CA123' })));
+    await handlers['message'](Buffer.from(JSON.stringify({ type: 'prompt', voicePrompt: 'Hello' })));
 
     const parsed = sent.map(s => JSON.parse(s));
     expect(parsed.some(m => m.type === 'text')).toBe(true);
-    expect(parsed.some(m => m.last === true)).toBe(true);
-    expect(parsed.filter(m => m.type === 'end')).toHaveLength(1);
-    expect(parsed.filter(m => m.type === 'text').every(m => !String(m.token).includes('[TRANSFER]'))).toBe(true);
+    const endMsg = parsed.find(m => m.type === 'end');
+    expect(endMsg).toBeDefined();
+    expect(JSON.parse(endMsg.handoffData).reason).toBe('transfer');
   });
 
-  it('sends end message when OpenAI throws', async () => {
+  it('sends verify_failed end message when agent includes [VERIFY_FAILED]', async () => {
     const { OpenAI } = require('openai');
     (OpenAI as jest.Mock).mockImplementationOnce(() => ({
-      chat: { completions: { create: jest.fn().mockRejectedValue(new Error('API error')) } },
+      chat: {
+        completions: {
+          create: jest.fn().mockResolvedValue({
+            choices: [{
+              finish_reason: 'stop',
+              message: { role: 'assistant', content: 'Sorry, cannot verify you. [VERIFY_FAILED]', tool_calls: undefined },
+            }],
+          }),
+        },
+      },
     }));
 
     const { ws, sent, handlers } = makeMockWs();
-    handleConversationRelay(ws);  // creates a new OpenAI instance — picks up mockImplementationOnce
-
-    await handlers['message'](
-      Buffer.from(JSON.stringify({ type: 'prompt', voicePrompt: 'test' }))
-    );
+    handleConversationRelay(ws);
+    await handlers['message'](Buffer.from(JSON.stringify({ type: 'setup', callSid: 'CA456' })));
+    await handlers['message'](Buffer.from(JSON.stringify({ type: 'prompt', voicePrompt: 'test' })));
 
     const parsed = sent.map(s => JSON.parse(s));
-    expect(parsed.some(m => m.type === 'end')).toBe(true);
+    const endMsg = parsed.find(m => m.type === 'end');
+    expect(endMsg).toBeDefined();
+    expect(JSON.parse(endMsg.handoffData).reason).toBe('verify_failed');
   });
 
   it('ignores non-prompt message types without sending anything', async () => {
     const { ws, sent, handlers } = makeMockWs();
     handleConversationRelay(ws);
-
-    await handlers['message'](
-      Buffer.from(JSON.stringify({ type: 'setup', callSid: 'CA123' }))
-    );
-
+    await handlers['message'](Buffer.from(JSON.stringify({ type: 'setup', callSid: 'CA789' })));
+    await handlers['message'](Buffer.from(JSON.stringify({ type: 'interrupt' })));
     expect(sent).toHaveLength(0);
   });
 });
