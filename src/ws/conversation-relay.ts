@@ -180,6 +180,18 @@ export function handleConversationRelay(ws: WebSocket): void {
 
     if (msg.type !== 'prompt' || !msg.voicePrompt) return;
 
+    // Guard: if no customer mobile is configured we can't verify — route to Flex immediately
+    if (!customer.mobile?.trim()) {
+      emit('transfer', 'Customer not configured — routing to Flex', undefined, callSid);
+      const notRecognised = "I'm sorry, I don't recognise the number you're calling from. Let me transfer you to our associate team who will be happy to help.";
+      const words = notRecognised.split(/\s+/).filter(Boolean);
+      for (let i = 0; i < words.length; i++) {
+        ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
+      }
+      ws.send(JSON.stringify({ type: 'end', handoffData: JSON.stringify({ reason: 'verify_failed' }) }));
+      return;
+    }
+
     emit('cr', `Caller: "${msg.voicePrompt}"`, undefined, callSid);
     history.push({ role: 'user', content: msg.voicePrompt });
 
