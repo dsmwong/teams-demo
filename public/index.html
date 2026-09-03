@@ -299,6 +299,13 @@
     .qr-btn i { font-size: 16px; vertical-align: middle; }
 
     /* ── customer config modal ── */
+    #cfg-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; padding: 24px;
+    }
+    #cfg-modal.hidden { display: none; }
     .cfg-btn {
       background: none; border: 1.5px solid #e2e8f0; border-radius: 6px;
       padding: 4px 8px; cursor: pointer; color: #718096;
