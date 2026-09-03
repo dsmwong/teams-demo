@@ -57,32 +57,42 @@ async function executeTool(
   const twilioClient = Twilio(config.twilio.accountSid, config.twilio.authToken);
 
   if (tc.function.name === 'send_otp') {
-    await twilioClient.verify.v2
-      .services(config.verify.serviceSid!)
-      .verifications.create({ to: customer.mobile, channel: 'sms' });
-    emit('cr', `OTP sent to ...${customer.mobile?.slice(-4)}`, undefined, callSid);
-    return `Verification code sent to the number ending in ${customer.mobile?.slice(-4)}.`;
+    try {
+      await twilioClient.verify.v2
+        .services(config.verify.serviceSid!)
+        .verifications.create({ to: customer.mobile, channel: 'sms' });
+      emit('cr', `OTP sent to ...${customer.mobile?.slice(-4)}`, undefined, callSid);
+      return `Verification code sent to the number ending in ${customer.mobile?.slice(-4)}.`;
+    } catch (err) {
+      emit('error', `send_otp failed: ${(err as Error).message}`, undefined, callSid);
+      return 'failed to send verification code — apologise to the caller and end with [VERIFY_FAILED].';
+    }
   }
 
   if (tc.function.name === 'check_otp') {
-    const args = JSON.parse(tc.function.arguments) as { code: string };
-    const check = await twilioClient.verify.v2
-      .services(config.verify.serviceSid!)
-      .verificationChecks.create({ to: customer.mobile, code: args.code });
+    try {
+      const args = JSON.parse(tc.function.arguments) as { code: string };
+      const check = await twilioClient.verify.v2
+        .services(config.verify.serviceSid!)
+        .verificationChecks.create({ to: customer.mobile, code: args.code });
 
-    if (check.status === 'approved') {
-      emit('cr', 'OTP verified ✓', undefined, callSid);
-      return 'approved';
+      if (check.status === 'approved') {
+        emit('cr', 'OTP verified ✓', undefined, callSid);
+        return 'approved';
+      }
+
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      emit('error', `OTP incorrect (attempt ${newAttempts}/2)`, undefined, callSid);
+
+      if (newAttempts >= 2) {
+        return 'failed — maximum attempts reached. Apologise to the caller and end with [VERIFY_FAILED].';
+      }
+      return `incorrect — ${2 - newAttempts} attempt(s) remaining. Ask the caller to try again.`;
+    } catch (err) {
+      emit('error', `check_otp failed: ${(err as Error).message}`, undefined, callSid);
+      return 'failed to check verification code — apologise to the caller and end with [VERIFY_FAILED].';
     }
-
-    const newAttempts = attempts + 1;
-    setAttempts(newAttempts);
-    emit('error', `OTP incorrect (attempt ${newAttempts}/2)`, undefined, callSid);
-
-    if (newAttempts >= 2) {
-      return 'failed — maximum attempts reached. Apologise to the caller and end with [VERIFY_FAILED].';
-    }
-    return `incorrect — ${2 - newAttempts} attempt(s) remaining. Ask the caller to try again.`;
   }
 
   return 'unknown tool';
@@ -204,7 +214,12 @@ export function handleConversationRelay(ws: WebSocket): void {
     } catch (err) {
       console.error('ConversationRelay error:', err);
       emit('error', `CR error: ${(err as Error).message}`, undefined, callSid);
-      ws.send(JSON.stringify({ type: 'end', handoffData: '{}' }));
+      const sorry = "I'm sorry, there was a technical issue. Let me transfer you to our associate team who will be happy to help.";
+      const words = sorry.split(/\s+/).filter(Boolean);
+      for (let i = 0; i < words.length; i++) {
+        ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
+      }
+      ws.send(JSON.stringify({ type: 'end', handoffData: JSON.stringify({ reason: 'verify_failed' }) }));
     }
   });
 }
