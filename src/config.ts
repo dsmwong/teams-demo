@@ -41,6 +41,9 @@ export const config = {
     transferVoice:   process.env.FLEX_TRANSFER_VOICE ?? 'Polly.Olivia-Neural',
   },
   openai: { apiKey: process.env.OPENAI_API_KEY! },
+  verify: {
+    serviceSid: process.env.VERIFY_SERVICE_SID,
+  },
   greetingMessage: process.env.GREETING_MESSAGE!,
   demoPassword:    process.env.DEMO_PASSWORD!,
   host:            process.env.HOST!,

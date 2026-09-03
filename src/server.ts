@@ -12,6 +12,7 @@ import dialActionRouter from './routes/dial-action';
 import tokenRouter     from './routes/token';
 import logStreamRouter      from './routes/log-stream';
 import whatsappInboundRouter from './routes/whatsapp-inbound';
+import customerConfigRouter from './routes/customer-config';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/dial-action', dialActionRouter);
 app.use('/token',       tokenRouter);
 app.use('/log-stream',        logStreamRouter);
 app.use('/whatsapp-inbound',  whatsappInboundRouter);
+app.use('/customer-config',  customerConfigRouter);
 
 const server = http.createServer(app);
 
