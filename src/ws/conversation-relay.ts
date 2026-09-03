@@ -32,6 +32,15 @@ const TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   },
 ];
 
+/** Split text into sentences and send each as a TTS token to ConversationRelay. */
+function sendText(ws: WebSocket, text: string): void {
+  // Split on sentence boundaries, preserving punctuation with each sentence
+  const sentences = text.match(/[^.!?]+[.!?]*/g)?.map(s => s.trim()).filter(Boolean) ?? [text];
+  for (let i = 0; i < sentences.length; i++) {
+    ws.send(JSON.stringify({ type: 'text', token: sentences[i], last: i === sentences.length - 1 }));
+  }
+}
+
 function buildSystemPrompt(customer: CustomerConfig): string {
   const base = fs.readFileSync(
     path.join(process.cwd(), 'prompts', 'system-prompt.md'),
@@ -142,10 +151,7 @@ async function runAgentLoop(
     history.push({ role: 'assistant', content: clean });
     emit('ai', `Agent: "${clean.length > 120 ? clean.slice(0, 120) + '…' : clean}"`, undefined, callSid);
 
-    const words = clean.split(/\s+/).filter(Boolean);
-    for (let i = 0; i < words.length; i++) {
-      ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
-    }
+    sendText(ws, clean);
 
     if (shouldTransfer) {
       emit('transfer', 'Agent triggering transfer to Teams', undefined, callSid);
@@ -194,10 +200,7 @@ export function handleConversationRelay(ws: WebSocket): void {
     if (!customer.mobile?.trim()) {
       emit('transfer', 'Customer not configured — routing to Flex', undefined, callSid);
       const notRecognised = "I'm sorry, I don't recognise the number you're calling from. Let me transfer you to our associate team who will be happy to help.";
-      const words = notRecognised.split(/\s+/).filter(Boolean);
-      for (let i = 0; i < words.length; i++) {
-        ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
-      }
+      sendText(ws, notRecognised);
       ws.send(JSON.stringify({ type: 'end', handoffData: JSON.stringify({ reason: 'verify_failed' }) }));
       return;
     }
@@ -215,10 +218,7 @@ export function handleConversationRelay(ws: WebSocket): void {
       console.error('ConversationRelay error:', err);
       emit('error', `CR error: ${(err as Error).message}`, undefined, callSid);
       const sorry = "I'm sorry, there was a technical issue. Let me transfer you to our associate team who will be happy to help.";
-      const words = sorry.split(/\s+/).filter(Boolean);
-      for (let i = 0; i < words.length; i++) {
-        ws.send(JSON.stringify({ type: 'text', token: words[i], last: i === words.length - 1 }));
-      }
+      sendText(ws, sorry);
       ws.send(JSON.stringify({ type: 'end', handoffData: JSON.stringify({ reason: 'verify_failed' }) }));
     }
   });
