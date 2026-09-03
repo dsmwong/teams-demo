@@ -616,6 +616,7 @@
   }
 
   function showDialler(token, phoneNumber, whatsappNumber, teamsNumber) {
+    syncCfgToServer(cfgFromStorage()); // restore persisted config to server after login/deploy
     document.getElementById('demo-number').textContent = phoneNumber || '—';
     document.getElementById('wa-url').textContent = window.location.origin + '/whatsapp-inbound';
     if (phoneNumber)    document.getElementById('arch-pstn').textContent      = phoneNumber;
@@ -659,15 +660,27 @@
     if (e.target === document.getElementById('qr-modal')) closeQr();
   }
 
-  async function openCfg() {
-    const r = await fetch('/customer-config');
-    if (r.ok) {
-      const d = await r.json();
-      document.getElementById('cfg-name').value      = d.name      || '';
-      document.getElementById('cfg-mobile').value    = d.mobile    || '';
-      document.getElementById('cfg-acct-type').value = d.accountType     || '';
-      document.getElementById('cfg-acct-four').value = d.accountLastFour || '';
-    }
+  const CFG_KEY = 'teams-demo-customer';
+
+  function cfgFromStorage() {
+    try { return JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch { return {}; }
+  }
+
+  async function syncCfgToServer(cfg) {
+    if (!cfg.mobile) return; // nothing worth syncing
+    await fetch('/customer-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cfg),
+    }).catch(() => {});
+  }
+
+  function openCfg() {
+    const d = cfgFromStorage();
+    document.getElementById('cfg-name').value      = d.name            || '';
+    document.getElementById('cfg-mobile').value    = d.mobile          || '';
+    document.getElementById('cfg-acct-type').value = d.accountType     || '';
+    document.getElementById('cfg-acct-four').value = d.accountLastFour || '';
     document.getElementById('cfg-saved').textContent = '';
     document.getElementById('cfg-modal').classList.remove('hidden');
   }
@@ -693,6 +706,7 @@
       body: JSON.stringify(body),
     });
     if (r.ok) {
+      localStorage.setItem(CFG_KEY, JSON.stringify(body));
       document.getElementById('cfg-saved').textContent = '✓ Saved';
       setTimeout(closeCfg, 800);
     }
