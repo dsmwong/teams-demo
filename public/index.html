@@ -71,6 +71,17 @@
     .dial-btn.active { background: #e53e3e; }
     .dial-btn i { font-size: 30px; color: #fff; }
     .dial-hint { font-size: 12px; color: #718096; }
+    .mute-btn {
+      margin: 10px auto 0; width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid #e2e8f0; background: #f7fafc;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .15s;
+    }
+    .mute-btn:hover { border-color: #a0aec0; background: #edf2f7; }
+    .mute-btn.muted { background: #fed7d7; border-color: #fc8181; }
+    .mute-btn i { font-size: 20px; color: #4a5568; }
+    .mute-btn.muted i { color: #c53030; }
+    .mute-label { font-size: 11px; color: #a0aec0; margin-top: 4px; }
     .divider {
       display: flex; align-items: center; gap: 8px;
       margin: 18px 0 12px; color: #cbd5e0; font-size: 11px;
@@ -315,6 +326,12 @@
       <i class="ph ph-phone"></i>
     </button>
     <div class="dial-hint" id="hint">Tap to call</div>
+    <div id="mute-wrap" hidden style="display:flex;flex-direction:column;align-items:center;margin-top:4px">
+      <button class="mute-btn" id="mute-btn" onclick="toggleMute()" title="Mute / Unmute">
+        <i class="ph ph-microphone" id="mute-icon"></i>
+      </button>
+      <div class="mute-label" id="mute-label">Mute</div>
+    </div>
     <div class="divider">or call via phone</div>
     <div class="phone-number">
       <i class="ph ph-phone-call"></i>
@@ -615,9 +632,10 @@
     setBtn('active', 'ph ph-circle-notch icon-spin', 'Connecting…');
     try {
       call = await device.connect();
-      call.on('accept',     () => { setStatus('In call', 'connected'); setBtn('active', 'ph ph-phone-x', 'Hang up'); });
-      call.on('disconnect', () => { call = null; setStatus('Call ended', ''); setBtn('idle', 'ph ph-phone', 'Tap to call'); setTimeout(() => setStatus('Idle', ''), 3000); });
-      call.on('error',      (e) => { call = null; setStatus('Error: ' + e.message, ''); setBtn('idle', 'ph ph-phone', 'Tap to call'); });
+      call.on('accept',     () => { setStatus('In call', 'connected'); setBtn('active', 'ph ph-phone-x', 'Hang up'); showMute(true); });
+      call.on('disconnect', () => { call = null; setStatus('Call ended', ''); setBtn('idle', 'ph ph-phone', 'Tap to call'); showMute(false); setTimeout(() => setStatus('Idle', ''), 3000); });
+      call.on('error',      (e) => { call = null; setStatus('Error: ' + e.message, ''); setBtn('idle', 'ph ph-phone', 'Tap to call'); showMute(false); });
+      call.on('mute',       (isMuted) => setMuteUi(isMuted));
     } catch (e) {
       call = null; setStatus('Failed', ''); setBtn('idle', 'ph ph-phone', 'Tap to call');
     }
@@ -760,6 +778,29 @@
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
+  function toggleMute() {
+    if (!call) return;
+    const muted = !call.isMuted();
+    call.mute(muted);
+    // setMuteUi is called via the 'mute' event, but set immediately for responsiveness
+    setMuteUi(muted);
+  }
+
+  function setMuteUi(muted) {
+    const btn   = document.getElementById('mute-btn');
+    const icon  = document.getElementById('mute-icon');
+    const label = document.getElementById('mute-label');
+    btn.classList.toggle('muted', muted);
+    icon.className = muted ? 'ph ph-microphone-slash' : 'ph ph-microphone';
+    label.textContent = muted ? 'Unmute' : 'Mute';
+  }
+
+  function showMute(visible) {
+    const wrap = document.getElementById('mute-wrap');
+    wrap.hidden = !visible;
+    if (!visible) setMuteUi(false); // reset state when call ends
+  }
+
   function show(id) { document.getElementById(id).hidden = false; }
 
   function setSdk(state, label) {
