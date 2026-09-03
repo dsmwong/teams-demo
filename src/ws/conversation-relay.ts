@@ -61,7 +61,7 @@ async function executeTool(
       .services(config.verify.serviceSid!)
       .verifications.create({ to: customer.mobile, channel: 'sms' });
     emit('cr', `OTP sent to ...${customer.mobile?.slice(-4)}`, undefined, callSid);
-    return `Verification code sent to ${customer.mobile}.`;
+    return `Verification code sent to the number ending in ${customer.mobile?.slice(-4)}.`;
   }
 
   if (tc.function.name === 'check_otp') {
@@ -108,13 +108,12 @@ async function runAgentLoop(
     });
 
     const choice = response.choices[0];
-    // Add the assistant message to history (may contain tool_calls)
-    history.push(choice.message as OpenAI.Chat.Completions.ChatCompletionMessageParam);
 
     if (choice.finish_reason === 'tool_calls' && choice.message.tool_calls) {
+      // Push the raw assistant message with tool_calls so OpenAI knows which calls were made
+      history.push(choice.message as OpenAI.Chat.Completions.ChatCompletionMessageParam);
       for (const tc of choice.message.tool_calls) {
         const result = await executeTool(tc, customer, attempts, setAttempts, callSid);
-        // Sync attempts back (setAttempts mutates the outer variable via closure)
         history.push({
           role: 'tool',
           tool_call_id: tc.id,
@@ -124,7 +123,7 @@ async function runAgentLoop(
       continue; // loop back to get agent's next response
     }
 
-    // Text response
+    // Text response — push the cleaned message (no control tokens in history)
     const fullResponse = choice.message.content ?? '';
     const shouldTransfer     = fullResponse.includes('[TRANSFER]');
     const shouldVerifyFailed = fullResponse.includes('[VERIFY_FAILED]');
